@@ -1,0 +1,65 @@
+{
+  "scoreboard": {
+    "dimensions": {
+      "width": 1400,
+      "height": 250,
+      "viewport_width": 1500,
+      "viewport_height": 350
+    },
+    "colors": {
+      "background_gradient": {
+        "start": "#e8e8e8",
+        "middle": "#c0c0c0",
+        "end": "#a0a0a0"
+      },
+      "border": "#606060",
+      "text": "#1a1a1a",
+      "score": "#0066cc",
+      "center_background": {
+        "start": "#ffffff",
+        "end": "#e0e0e0"
+      },
+      "center_border": "#0066cc",
+      "accent_bar": {
+        "primary": "#0066cc",
+        "secondary": "#0099ff"
+      },
+      "placeholder_background": {
+        "start": "#0066cc",
+        "end": "#004499"
+      },
+      "placeholder_text": "#ffffff"
+    },
+    "fonts": {
+      "family": "'Arial Black', 'Arial', sans-serif",
+      "team_name_size": "42px",
+      "score_size": "56px",
+      "placeholder_initials_size": "28px"
+    },
+    "logos": {
+      "team_logo_size": 70,
+      "league_logo_size": 60
+    },
+    "effects": {
+      "border_radius": "15px",
+      "center_border_radius": "50px",
+      "shadow_main": "0 5px 20px rgba(0,0,0,0.3)",
+      "shadow_inset_top": "inset 0 2px 5px rgba(255,255,255,0.5)",
+      "shadow_inset_bottom": "inset 0 -2px 5px rgba(0,0,0,0.2)"
+    }
+  },
+  "leagues": {
+    "Liga Kings": {
+      "logo_folder": "C:\\Users\\mgarr\\Desktop\\buho\\1- Liga Kings-20250925T142355Z-1-001\\1- Liga Kings\\1 - Escudos",
+      "league_logo": "C:\\Users\\mgarr\\Desktop\\buho\\1- Liga Kings-20250925T142355Z-1-001\\1- Liga Kings\\5 - Miscelaneos\\LIGA_KINGS.png",
+      "output_folder": "Liga Kings",
+      "crown_emoji": "👑"
+    }
+  },
+  "processing": {
+    "wait_for_images_ms": 1000,
+    "headless_mode": true,
+    "log_missing_logos": true,
+    "create_missing_report": true
+  }
+}

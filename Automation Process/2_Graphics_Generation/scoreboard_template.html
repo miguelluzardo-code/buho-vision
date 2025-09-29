@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoreboard Generator - Buho Vision</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial Black', 'Arial', sans-serif;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .scoreboard {
+            width: 1400px;
+            height: 250px;
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            perspective: 1000px;
+        }
+
+        /* Left and Right Panels (Team Names) */
+        .team-panel {
+            width: 400px;
+            background: linear-gradient(135deg,
+                #4a4a4a 0%,
+                #6a6a6a 20%,
+                #8a8a8a 40%,
+                #aaaaaa 50%,
+                #cccccc 60%,
+                #e0e0e0 80%,
+                #f5f5f5 100%);
+            border: 3px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow:
+                inset 0 3px 12px rgba(255,255,255,0.9),
+                inset 0 -3px 12px rgba(0,0,0,0.4),
+                0 8px 20px rgba(0,0,0,0.5);
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        /* Inner gradient for team panels */
+        .team-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center,
+                rgba(255,255,255,0.2) 0%,
+                transparent 60%);
+            pointer-events: none;
+        }
+
+        .team-panel.home {
+            border-radius: 20px 0 0 20px;
+            clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
+            margin-right: -25px;
+        }
+
+        .team-panel.away {
+            border-radius: 0 20px 20px 0;
+            clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+            margin-left: -25px;
+        }
+
+        /* Team names */
+        .team-name {
+            font-size: 44px;
+            font-weight: 900;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            text-shadow:
+                3px 3px 0 rgba(255,255,255,0.9),
+                -1px -1px 0 rgba(0,0,0,0.3),
+                0 0 15px rgba(255,255,255,0.5);
+            letter-spacing: 3px;
+            z-index: 10;
+            position: relative;
+            padding: 10px 20px;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.3) 0%,
+                rgba(255,255,255,0.1) 50%,
+                rgba(0,0,0,0.05) 100%);
+            border-radius: 10px;
+        }
+
+        /* Center section with scores and logos */
+        .center-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: linear-gradient(90deg,
+                #0a3d7a 0%,
+                #1452a3 15%,
+                #1e67cc 35%,
+                #2a7be8 50%,
+                #1e67cc 65%,
+                #1452a3 85%,
+                #0a3d7a 100%);
+            border-top: 3px solid #3a3a3a;
+            border-bottom: 3px solid #3a3a3a;
+            box-shadow:
+                inset 0 3px 10px rgba(255,255,255,0.3),
+                inset 0 -3px 10px rgba(0,0,0,0.5),
+                0 0 25px rgba(0,0,0,0.4);
+            z-index: 3;
+            overflow: hidden;
+        }
+
+        /* Additional gradient overlay for depth */
+        .center-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.15) 0%,
+                transparent 30%,
+                transparent 70%,
+                rgba(0,0,0,0.2) 100%);
+            pointer-events: none;
+        }
+
+        /* Score Container */
+        .score-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Team logos next to scores */
+        .team-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.7));
+            transition: transform 0.3s ease;
+        }
+
+        /* Placeholder for missing logos */
+        .logo-placeholder {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #ffffff 0%, #d0d0d0 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #0a3d7a;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+            box-shadow:
+                0 3px 8px rgba(0,0,0,0.4),
+                inset 0 2px 4px rgba(255,255,255,0.9);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        /* Scores */
+        .score {
+            font-size: 120px;
+            font-weight: 900;
+            color: #ffffff;
+            min-width: 120px;
+            text-align: center;
+            text-shadow:
+                5px 5px 10px rgba(0,0,0,0.8),
+                -2px -2px 4px rgba(255,255,255,0.5),
+                0 0 25px rgba(255,255,255,0.3);
+            letter-spacing: -3px;
+        }
+
+        /* League logo in center */
+        .league-logo-container {
+            position: relative;
+            margin: 0 20px;
+        }
+
+        .league-logo {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            filter: drop-shadow(4px 4px 10px rgba(0,0,0,0.6));
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Decorative elements */
+        .shine-effect {
+            position: absolute;
+            top: 10%;
+            left: -100px;
+            width: 100px;
+            height: 80%;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255,255,255,0.2) 50%,
+                transparent 100%);
+            transform: skewX(-20deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100px; }
+            100% { left: calc(100% + 100px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        <!-- Left Panel with Home Team Name -->
+        <div class="team-panel home">
+            <div class="team-name" id="home-name">LA NOCHE</div>
+        </div>
+
+        <!-- Center section with logos and scores -->
+        <div class="center-section">
+            <div class="shine-effect"></div>
+            <div class="score-container">
+                <!-- Home team logo -->
+                <img class="team-logo" id="home-logo" src="" alt="Home Logo" style="display:none;">
+                <div class="logo-placeholder" id="home-placeholder" style="display:none;">
+                    <span id="home-initials"></span>
+                </div>
+
+                <!-- Home score -->
+                <div class="score" id="home-score">4</div>
+
+                <!-- League logo in center -->
+                <div class="league-logo-container">
+                    <img class="league-logo" id="league-logo" src="" alt="Liga Logo">
+                </div>
+
+                <!-- Away score -->
+                <div class="score" id="away-score">2</div>
+
+                <!-- Away team logo -->
+                <img class="team-logo" id="away-logo" src="" alt="Away Logo" style="display:none;">
+                <div class="logo-placeholder" id="away-placeholder" style="display:none;">
+                    <span id="away-initials"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel with Away Team Name -->
+        <div class="team-panel away">
+            <div class="team-name" id="away-name">LA CREMA</div>
+        </div>
+    </div>
+
+    <script>
+        // Function to get team initials
+        function getInitials(teamName) {
+            const words = teamName.split(' ');
+            if (words.length === 1) {
+                return teamName.substring(0, 2).toUpperCase();
+            }
+            return words.map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        }
+
+        // This will be populated by our Python script
+        function updateScoreboard(data) {
+            document.getElementById('home-name').textContent = data.homeTeam;
+            document.getElementById('away-name').textContent = data.awayTeam;
+            document.getElementById('home-score').textContent = data.homeScore;
+            document.getElementById('away-score').textContent = data.awayScore;
+
+            // Handle home team logo or placeholder
+            if (data.homePlaceholder) {
+                document.getElementById('home-logo').style.display = 'none';
+                document.getElementById('home-placeholder').style.display = 'flex';
+                document.getElementById('home-initials').textContent = getInitials(data.homeTeam);
+            } else if (data.homeLogo) {
+                document.getElementById('home-logo').src = data.homeLogo;
+                document.getElementById('home-logo').style.display = 'block';
+                document.getElementById('home-placeholder').style.display = 'none';
+            }
+
+            // Handle away team logo or placeholder
+            if (data.awayPlaceholder) {
+                document.getElementById('away-logo').style.display = 'none';
+                document.getElementById('away-placeholder').style.display = 'flex';
+                document.getElementById('away-initials').textContent = getInitials(data.awayTeam);
+            } else if (data.awayLogo) {
+                document.getElementById('away-logo').src = data.awayLogo;
+                document.getElementById('away-logo').style.display = 'block';
+                document.getElementById('away-placeholder').style.display = 'none';
+            }
+
+            // Update league logo
+            if (data.leagueLogo) {
+                document.getElementById('league-logo').src = data.leagueLogo;
+            }
+        }
+
+        // Test data for preview
+        const testData = {
+            homeTeam: 'LA NOCHE',
+            awayTeam: 'LA CREMA',
+            homeScore: '4',
+            awayScore: '2',
+            homeLogo: '',
+            awayLogo: '',
+            leagueLogo: ''
+        };
+
+        // Auto-load test data for preview
+        window.onload = () => updateScoreboard(testData);
+    </script>
+</body>
+</html>

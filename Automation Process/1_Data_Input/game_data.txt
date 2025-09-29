@@ -1,0 +1,9 @@
+# BUHO VISION - GAME DATA
+# Format: Team1 vs Team2 Score1-Score2 League
+# Example matches for Liga Kings
+
+LA NOCHE vs LA CREMA 4-2 Liga Kings
+ATLETICO MINEIRO vs LA 4 1-6 Liga Kings
+BAYERN vs ARSENAL 3-1 Liga Kings
+JUVENTUS vs MILAN 2-2 Liga Kings
+REAL BARRIO vs DEPORTIVO LB 0-3 Liga Kings
