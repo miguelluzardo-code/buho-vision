@@ -771,6 +771,9 @@ body {
 .wc-pipe-btn:hover { background:var(--orange); border-color:var(--orange); color:#000; }
 .wc-pipe-arrow { font-size:9px; color:var(--t-3); flex-shrink:0; }
 .wc-by { font-size:7px; color:var(--t-2); margin-top:2px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.wc-pipe-sub { font-size:7px; color:var(--t-3); letter-spacing:.3px; margin-top:0px; font-style:italic; }
+.wc-sla { font-size:7px; color:var(--t-2); margin-top:2px; }
+.wc-sla-over { color:#ef4444; font-weight:700; }
 
 /* ── PLANILLA MODAL ── */
 .pl-row { background:var(--bg-3); border:1px solid var(--b-1); border-radius:var(--r-md); padding:10px 12px; margin-bottom:8px; position:relative; }
@@ -3492,9 +3495,19 @@ function renderWeek() {
       const conf = s.confirmed_games || 0;
       const prev = s.planned_games != null ? s.planned_games : null;
       const deliv = s.delivered_games || 0;
-      const canConfirm = (currentRole === 'admin' || currentRole === 'equipo');
+      const canGrab  = (currentRole === 'admin' || currentRole === 'equipo');
+      const canEntre = (currentRole === 'admin');
       const fmtAt = iso => iso ? new Date(iso).toLocaleString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
       const ds_is_completa = (s.download_status||'') === 'completa';
+      // 48h SLA: show elapsed hours since grab confirmed, warn if >48h without delivery
+      const slaHtml = (() => {
+        if (conf > 0 && deliv === 0 && s.confirmed_at) {
+          const hrs = Math.floor((Date.now() - new Date(s.confirmed_at).getTime()) / 3600000);
+          const over = hrs >= 48;
+          return `<div class="wc-sla${over?' wc-sla-over':''}" title="Tiempo desde grabación confirmada">${over?'⚠️ ':'🕐 '}${hrs}h</div>`;
+        }
+        return '';
+      })();
       const confirmBar = `
         <div class="wc-pipeline" onclick="event.stopPropagation()">
           <div class="wc-pipe-stage">
@@ -3504,9 +3517,11 @@ function renderWeek() {
           <div class="wc-pipe-arrow">→</div>
           <div class="wc-pipe-stage${conf > 0 ? ' active-efec' : ''}">
             <div class="wc-pipe-num${conf > 0 ? ' v-efec' : ''}">${conf}</div>
-            <div class="wc-pipe-lbl">EFEC</div>
+            <div class="wc-pipe-lbl">GRAB</div>
+            <div class="wc-pipe-sub">en Veo</div>
             ${s.confirmed_by ? `<div class="wc-by" title="${fmtAt(s.confirmed_at)}">✓ ${s.confirmed_by}</div>` : ''}
-            ${canConfirm ? `<div class="wc-pipe-btns">
+            ${slaHtml}
+            ${canGrab ? `<div class="wc-pipe-btns">
               <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',-1,event)">−</button>
               <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',1,event)">+</button>
             </div>` : ''}
@@ -3515,8 +3530,9 @@ function renderWeek() {
           <div class="wc-pipe-stage${deliv > 0 ? ' active-entr' : ''}">
             <div class="wc-pipe-num${deliv > 0 ? ' v-entr' : ''}">${deliv}</div>
             <div class="wc-pipe-lbl">ENTRE</div>
+            <div class="wc-pipe-sub">cobrable</div>
             ${s.delivered_by ? `<div class="wc-by" title="${fmtAt(s.delivered_at)}">✓ ${s.delivered_by}</div>` : ''}
-            ${canConfirm ? `<div class="wc-pipe-btns">
+            ${canEntre ? `<div class="wc-pipe-btns">
               <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',-1,event)">−</button>
               <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',1,event)">+</button>
             </div>` : ''}
@@ -3800,9 +3816,9 @@ function renderKanban() {
   }
 
   el.innerHTML = `<div class="kanban">
-    ${kbCol('ACTIVIDAD PREVISTA',  'var(--t-1)',    '📋', previstas)}
-    ${kbCol('ACTIVIDAD EFECTIVA',  '#2cb960',       '✅', efectivas)}
-    ${kbCol('MATERIALES ENTREGADOS', 'var(--orange)', '📦', entregados)}
+    ${kbCol('ACTIVIDAD PREVISTA',    'var(--t-1)',    '📋', previstas)}
+    ${kbCol('GRABADO / VEO',         '#2cb960',       '📹', efectivas)}
+    ${kbCol('FINALIZADO / ENTREGADO','var(--orange)', '✅', entregados)}
   </div>`;
 }
 
@@ -6782,8 +6798,10 @@ function quickDeliver(sessionId, delta, event) {
   sessions[idx].delivered_at    = new Date().toISOString();
   store(LS.ss, sessions);
   try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  if (next > 0) toast(`✅ ${next} entregado(s) · ${sessions[idx].delivered_by} · Cobrable`);
   renderWeek();
   if (document.getElementById('prod-list')) renderKanban();
+  if (document.getElementById('cobros-content')) renderCobros();
 }
 
 function quickStatus(sessionId, status, event) {
@@ -6895,12 +6913,12 @@ function openSessionModal(s, isNew) {
             <input id="sm-planned" type="number" min="0" class="finput" value="${s.planned_games!=null?s.planned_games:''}">
           </div>
           <div>
-            <label class="flabel">Partidos efectivos</label>
+            <label class="flabel">Grabados en Veo</label>
             <input id="sm-confirmed" type="number" min="0" class="finput" value="${s.confirmed_games||0}">
           </div>
         </div>
         <div>
-          <label class="flabel">Partidos entregados</label>
+          <label class="flabel">Entregados (cobrables)</label>
           <input id="sm-delivered" type="number" min="0" class="finput" value="${s.delivered_games||0}">
         </div>
         <div>
