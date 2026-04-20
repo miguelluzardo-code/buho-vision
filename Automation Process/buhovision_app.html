@@ -2677,9 +2677,14 @@ function startFirestoreSync() {
       if (d[LS.lg]) { leagues = d[LS.lg]; localStorage.setItem(LS.lg, JSON.stringify(leagues)); }
       // Asegurar que todas las ligas del PDF estén presentes (merge no-destructivo)
       mergeDefaultLeagues();
-      // Sincronizar sesiones desde Firestore (fuente de verdad compartida)
-      if (d[LS.ss] && Array.isArray(d[LS.ss]) && d[LS.ss].length > sessions.length) {
-        sessions = d[LS.ss];
+      // Sincronizar sesiones desde Firestore (fuente de verdad compartida para TODOS los usuarios)
+      // SIEMPRE sincronizar — no solo cuando hay más sesiones.
+      // Cualquier cambio (confirmed_games, delivered_games, etc.) debe verse en todos los dispositivos.
+      if (d[LS.ss] && Array.isArray(d[LS.ss])) {
+        // Merge: Firestore gana en campos compartidos; sesiones locales no enviadas se conservan
+        const fsMap = new Map(d[LS.ss].map(s => [s.id, s]));
+        const localOnly = sessions.filter(s => !fsMap.has(s.id));
+        sessions = [...d[LS.ss], ...localOnly];
         localStorage.setItem(LS.ss, JSON.stringify(sessions));
       }
       seedPDFAbril2026();
