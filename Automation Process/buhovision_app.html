@@ -3560,8 +3560,8 @@ function renderWeek() {
         <div class="wc-status-row" onclick="event.stopPropagation()">
           <span style="font-size:10px;font-weight:700;color:${sc};background:${sc}22;padding:2px 6px;border-radius:4px">${sl}</span>
           ${s.status_changed_by ? `<span style="font-size:9px;color:var(--t-3)" title="${fmtAt(s.status_changed_at)}">✓ ${s.status_changed_by}</span>` : ''}
-          ${canConfirm && !ds_is_completa ? `<button class="wc-quick-btn" onclick="quickStatus('${s.id}','completa',event)">→ Completa</button>` : ''}
-          ${canConfirm && ds_is_completa ? `<button class="wc-quick-btn active" onclick="quickStatus('${s.id}','pendiente',event)">↩ Revertir</button>` : ''}
+          ${canGrab && !ds_is_completa ? `<button class="wc-quick-btn" onclick="quickStatus('${s.id}','completa',event)">→ Completa</button>` : ''}
+          ${canGrab && ds_is_completa ? `<button class="wc-quick-btn active" onclick="quickStatus('${s.id}','pendiente',event)">↩ Revertir</button>` : ''}
         </div>
         ${confirmBar}
       </div>`;
