@@ -2709,22 +2709,25 @@ function startFirestoreSync() {
       if (!localStorage.getItem('ps2_seeded_logistica_abril18_24_v2')) {
         seedLogisticaAbril18_24();
       }
-      // Sincronizar ligas desde Firestore primero
+      // ── SYNC: leer datos de Firestore (fuente de verdad compartida) ──
+      // Ligas
       if (d[LS.lg]) { leagues = d[LS.lg]; localStorage.setItem(LS.lg, JSON.stringify(leagues)); }
-      // Asegurar que todas las ligas del PDF estén presentes (merge no-destructivo)
-      mergeDefaultLeagues();
-      // Sincronizar sesiones desde Firestore (fuente de verdad compartida para TODOS los usuarios)
-      // SIEMPRE sincronizar — no solo cuando hay más sesiones.
-      // Cualquier cambio (confirmed_games, delivered_games, etc.) debe verse en todos los dispositivos.
+      // Sesiones: SIEMPRE sincronizar para que cambios de otros usuarios (confirmed_games, etc.) se vean
       if (d[LS.ss] && Array.isArray(d[LS.ss])) {
-        // Merge: Firestore gana en campos compartidos; sesiones locales no enviadas se conservan
         const fsMap = new Map(d[LS.ss].map(s => [s.id, s]));
         const localOnly = sessions.filter(s => !fsMap.has(s.id));
         sessions = [...d[LS.ss], ...localOnly];
         localStorage.setItem(LS.ss, JSON.stringify(sessions));
       }
-      seedPDFAbril2026();
-      repairOrphanedSessions();
+      // ── INIT: solo en el primer snapshot de la sesión (evita loop infinito) ──
+      // mergeDefaultLeagues / seedPDFAbril2026 / repairOrphanedSessions escriben a Firestore.
+      // Si corren en cada snapshot generan un loop: write → snapshot → write → snapshot...
+      if (!window._appInitialized) {
+        window._appInitialized = true;
+        mergeDefaultLeagues();
+        seedPDFAbril2026();
+        repairOrphanedSessions();
+      }
       let changed = false;
       if (d[LS.lg])  { leagues        = d[LS.lg];  localStorage.setItem(LS.lg,  JSON.stringify(leagues));        changed = true; }
       if (d[LS.gm])  {
