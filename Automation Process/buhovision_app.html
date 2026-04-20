@@ -756,7 +756,37 @@ body {
   line-height: 1;
 }
 .wc-conf-num.has-val { color: #2cb960; }
+.wc-conf-num.has-del { color: var(--orange); }
 .wc-conf-lbl { font-size: 9px; color: var(--t-2); line-height: 1; text-align:center; margin-top:1px; }
+.wc-pipeline { display:flex; align-items:center; gap:4px; margin-top:7px; }
+.wc-pipe-stage { flex:1; background:var(--bg-3); border:1px solid var(--b-0); border-radius:6px; padding:4px 5px; text-align:center; }
+.wc-pipe-stage.active-efec { background:rgba(44,185,96,.1); border-color:rgba(44,185,96,.35); }
+.wc-pipe-stage.active-entr { background:rgba(246,161,25,.1); border-color:rgba(246,161,25,.35); }
+.wc-pipe-num { font-size:14px; font-weight:900; color:var(--t-3); line-height:1; }
+.wc-pipe-num.v-efec { color:#2cb960; }
+.wc-pipe-num.v-entr { color:var(--orange); }
+.wc-pipe-lbl { font-size:8px; color:var(--t-3); letter-spacing:.4px; margin-top:1px; }
+.wc-pipe-btns { display:flex; justify-content:center; gap:3px; margin-top:3px; }
+.wc-pipe-btn { width:18px; height:18px; border-radius:4px; background:var(--bg-2); border:1px solid var(--b-1); cursor:pointer; font-size:12px; font-weight:900; color:var(--t-1); display:flex; align-items:center; justify-content:center; line-height:1; user-select:none; transition:all .12s; }
+.wc-pipe-btn:hover { background:var(--orange); border-color:var(--orange); color:#000; }
+.wc-pipe-arrow { font-size:9px; color:var(--t-3); flex-shrink:0; }
+.wc-by { font-size:7px; color:var(--t-2); margin-top:2px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+
+/* ── PLANILLA MODAL ── */
+.pl-row { background:var(--bg-3); border:1px solid var(--b-1); border-radius:var(--r-md); padding:10px 12px; margin-bottom:8px; position:relative; }
+.pl-row-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.pl-row-num { font-size:10px; font-weight:700; color:var(--t-3); background:var(--bg-4); border-radius:4px; padding:2px 6px; }
+.pl-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.pl-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.pl-del { position:absolute; top:8px; right:8px; width:20px; height:20px; border-radius:4px; background:transparent; border:1px solid var(--b-1); color:var(--t-3); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; transition:all .12s; }
+.pl-del:hover { background:#ef444422; border-color:#ef4444; color:#ef4444; }
+.pl-add-btn { width:100%; padding:10px; border:1px dashed var(--b-2); border-radius:var(--r-md); background:transparent; color:var(--t-2); cursor:pointer; font-size:13px; font-weight:600; transition:all .12s; margin-top:4px; }
+.pl-add-btn:hover { border-color:var(--orange); color:var(--orange); background:var(--orange-g); }
+.pl-league-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+.wc-status-row { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; }
+.wc-quick-btn { font-size:9px; font-weight:600; padding:2px 6px; border-radius:4px; border:1px solid var(--b-1); background:var(--bg-3); color:var(--t-2); cursor:pointer; white-space:nowrap; transition:all .12s; }
+.wc-quick-btn:hover { border-color:var(--orange); color:var(--orange); background:var(--orange-g); }
+.wc-quick-btn.active { border-color:#2cb960; color:#2cb960; background:rgba(44,185,96,.08); }
 
 /* game card inside week col */
 .wc-game {
@@ -1572,10 +1602,11 @@ body {
           <div class="week-label" id="wk-label">Semana —</div>
           <div class="week-label-sub" id="wk-sub">—</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="wkPrev()">◀ Anterior</button>
           <button class="btn btn-ghost btn-sm" onclick="wkToday()">Esta semana</button>
           <button class="btn btn-ghost btn-sm" onclick="wkNext()">Siguiente ▶</button>
+          <button class="btn btn-primary btn-sm" onclick="openPlanillaModal()" style="margin-left:8px">📋 Cargar planilla</button>
         </div>
       </div>
 
@@ -2636,6 +2667,20 @@ function startFirestoreSync() {
         seedApril2026();
         return; // seeder escribe a Firebase → onSnapshot vuelve a disparar con datos nuevos
       }
+      if (!localStorage.getItem('ps2_seeded_logistica_abril18_24_v2')) {
+        seedLogisticaAbril18_24();
+      }
+      // Sincronizar ligas desde Firestore primero
+      if (d[LS.lg]) { leagues = d[LS.lg]; localStorage.setItem(LS.lg, JSON.stringify(leagues)); }
+      // Asegurar que todas las ligas del PDF estén presentes (merge no-destructivo)
+      mergeDefaultLeagues();
+      // Sincronizar sesiones desde Firestore (fuente de verdad compartida)
+      if (d[LS.ss] && Array.isArray(d[LS.ss]) && d[LS.ss].length > sessions.length) {
+        sessions = d[LS.ss];
+        localStorage.setItem(LS.ss, JSON.stringify(sessions));
+      }
+      seedPDFAbril2026();
+      repairOrphanedSessions();
       let changed = false;
       if (d[LS.lg])  { leagues        = d[LS.lg];  localStorage.setItem(LS.lg,  JSON.stringify(leagues));        changed = true; }
       if (d[LS.gm])  {
@@ -2745,7 +2790,86 @@ const STAGES = [
 ];
 
 function today()     { return new Date().toISOString().split('T')[0]; }
-function getLg(id)   { return leagues.find(l => l.id === id); }
+function getLg(id) {
+  if (!id) return null;
+  let lg = leagues.find(l => l.id === id);
+  if (lg) return lg;
+  lg = leagues.find(l => l.name.toLowerCase() === id.toLowerCase());
+  return lg || null;
+}
+
+// Agrega ligas del PDF que puedan faltar en la copia de Firestore (merge no-destructivo por nombre)
+function mergeDefaultLeagues() {
+  const REQUIRED = [
+    { name:'Solymar',            sport:'Fútbol',   color:'#06b6d4', icon:'🌊', desc:'Lomas 3 · Zona Lab · Los Cardales' },
+    { name:'Liga América',       sport:'Fútbol',   color:'#dc2626', icon:'🦅', desc:'Los Cardales · Op: Mauro' },
+    { name:'Liga Celeste',       sport:'Fútbol',   color:'#60a5fa', icon:'💙', desc:'La Cantera · Op: Mauro & Agustín' },
+    { name:'Liga MVD',           sport:'Fútbol',   color:'#6366f1', icon:'🏟️', desc:'Palermo' },
+    { name:'Liga Pando',         sport:'Fútbol',   color:'#16a34a', icon:'🌿', desc:'AutoGestión' },
+    { name:'Liga Kings',         sport:'Fútbol',   color:'#f6a119', icon:'👑', desc:'Liga principal' },
+    { name:'Liga Solo Fútbol',   sport:'Fútbol',   color:'#2cb960', icon:'⚽', desc:'PDR F5' },
+    { name:'Liga PRO',           sport:'Fútbol',   color:'#8b5cf6', icon:'🥇', desc:'Nazzasi · Polideportivo' },
+    { name:'Piria Seven League', sport:'Fútbol',   color:'#3b82f6', icon:'⚡', desc:'Fútbol 7 · Piriápolis' },
+    { name:'Liga LVH',           sport:'Fútbol',   color:'#14b8a6', icon:'🏅', desc:'' },
+    { name:'Liga Uruguay',       sport:'Fútbol',   color:'#eab308', icon:'🇺🇾', desc:'La Cantera' },
+    { name:'Liga Lokura',        sport:'Fútbol',   color:'#ef4444', icon:'🔥', desc:'' },
+    { name:'Liga Femenina Basketball', sport:'Basketball', color:'#ec4899', icon:'🏀', desc:'Basketball femenino' },
+  ];
+  let added = 0;
+  REQUIRED.forEach(def => {
+    if (!leagues.find(l => l.name === def.name)) {
+      leagues.push({ id: uid(), ...def });
+      added++;
+    }
+  });
+  if (added > 0) {
+    store(LS.lg, leagues);
+    console.log(`[mergeLeagues] ${added} ligas agregadas`);
+  }
+}
+
+// Repara sesiones cuyo liga ID no coincide con ninguna liga actual.
+// Usa liga_name (guardado en sesión) o heurística por venue.
+function repairOrphanedSessions() {
+  const VENUE_MAP = {
+    'palermo':               'Liga MVD',
+    'lomas 3':               'Solymar',
+    'zona lab':              'Solymar',
+    'la cantera':            'Liga Celeste',
+    'nazzasi':               'Liga PRO',
+    'polideportivo carrasco':'Liga PRO',
+    'pdr f5':                'Liga Solo Fútbol',
+    'pro futbol':            'Liga Kings',
+    'invictus':              'Solymar',
+  };
+  // Cámaras de Liga América en Los Cardales: 2588E, 07082, 61167
+  const AMERICA_CAMS = ['2588e','07082','61167'];
+  let repaired = 0;
+  sessions.forEach(s => {
+    if (getLg(s.liga)) return; // ya ok
+    let target = null;
+    // 1) Usar liga_name guardado (más confiable)
+    if (s.liga_name) target = leagues.find(l => l.name.toLowerCase() === s.liga_name.toLowerCase());
+    // 2) Heurística por venue
+    if (!target && s.venue) {
+      const v = s.venue.toLowerCase();
+      if (v === 'los cardales') {
+        // Distinguir América (cámaras 2588E/07082/61167) de Solymar
+        const cams = (s.cameras || []).map(c => c.toLowerCase());
+        const isAmerica = AMERICA_CAMS.some(c => cams.includes(c));
+        target = leagues.find(l => l.name === (isAmerica ? 'Liga América' : 'Solymar'));
+      } else {
+        target = leagues.find(l => l.name === VENUE_MAP[v]);
+      }
+    }
+    if (target) { s.liga = target.id; repaired++; }
+  });
+  if (repaired > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    console.log(`[repair] ${repaired} sesiones reparadas`);
+  }
+}
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -3114,6 +3238,216 @@ function wkPrev()  { wkOffset--; renderWeek(); }
 function wkNext()  { wkOffset++; renderWeek(); }
 function wkToday() { wkOffset=0; renderWeek(); }
 
+/* ══════════════════════════════════════════════
+   PLANILLA SEMANAL — modal de carga manual
+   ══════════════════════════════════════════════ */
+let plRowCount = 0;
+
+function openPlanillaModal() {
+  plRowCount = 0;
+  // Calcular el lunes de la semana actualmente visible
+  const days = getWeekDates();
+  const monIso = days[0].toISOString().split('T')[0];
+
+  const html = `<div class="modal-overlay" id="planilla-modal" onclick="if(event.target.id==='planilla-modal')closePlanilla()">
+    <div class="modal" style="max-width:680px;width:96vw;max-height:92vh;display:flex;flex-direction:column">
+      <div class="modal-head">
+        <div class="modal-title">📋 Cargar planilla semanal</div>
+        <button class="btn btn-ghost btn-icon" onclick="closePlanilla()">✕</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;flex:1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div>
+            <label class="flabel">Lunes de la semana</label>
+            <input id="pl-week" type="date" class="finput" value="${monIso}" onchange="plUpdateDayLabels()">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <div style="font-size:11px;color:var(--t-2);line-height:1.4">
+              Agregá una fila por cada <strong>liga + complejo + día</strong>.<br>
+              El sistema actualiza sin pisar confirmaciones previas.
+            </div>
+          </div>
+        </div>
+        <div id="pl-rows"></div>
+        <button class="pl-add-btn" onclick="addPlanillaRow()">+ Agregar sesión</button>
+      </div>
+      <div class="modal-foot">
+        <div style="font-size:11px;color:var(--t-2)" id="pl-count">0 sesiones</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="closePlanilla()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="savePlanilla()">💾 Guardar todo</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  // Agregar 3 filas vacías para empezar
+  addPlanillaRow(); addPlanillaRow(); addPlanillaRow();
+}
+
+function closePlanilla() {
+  document.getElementById('planilla-modal')?.remove();
+}
+
+function plLgOptions(sel) {
+  return leagues
+    .sort((a,b) => a.name.localeCompare(b.name))
+    .map(l => `<option value="${l.id}" ${sel===l.id?'selected':''}>${l.icon||'🏆'} ${l.name}</option>`)
+    .join('');
+}
+
+function plGetWeekDays() {
+  const monStr = document.getElementById('pl-week')?.value;
+  if (!monStr) return [];
+  const mon = new Date(monStr + 'T00:00:00');
+  return Array.from({length:7}, (_, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i); return d;
+  });
+}
+
+function plDayOptions(selIso) {
+  const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const days = plGetWeekDays();
+  return days.map((d, i) => {
+    const iso = d.toISOString().split('T')[0];
+    return `<option value="${iso}" ${selIso===iso?'selected':''}>${DIAS[i]} ${d.getDate()}/${d.getMonth()+1}</option>`;
+  }).join('');
+}
+
+function addPlanillaRow(data) {
+  plRowCount++;
+  const idx = plRowCount;
+  const container = document.getElementById('pl-rows');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'pl-row';
+  row.id = `pl-row-${idx}`;
+  row.innerHTML = `
+    <button class="pl-del" onclick="removePlanillaRow(${idx})" title="Eliminar">✕</button>
+    <div class="pl-row-head">
+      <span class="pl-row-num">#${idx}</span>
+    </div>
+    <div class="pl-grid" style="margin-bottom:8px">
+      <div>
+        <label class="flabel">Día</label>
+        <select id="pl-day-${idx}" class="finput">${plDayOptions(data?.date||'')}</select>
+      </div>
+      <div>
+        <label class="flabel">Liga</label>
+        <select id="pl-lg-${idx}" class="finput">${plLgOptions(data?.liga||'')}</select>
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      <label class="flabel">Complejo / Sede</label>
+      <input id="pl-venue-${idx}" class="finput" placeholder="Lomas 3, Pro Futbol, PDR F5…" value="${data?.venue||''}">
+    </div>
+    <div class="pl-grid" style="margin-bottom:8px">
+      <div>
+        <label class="flabel">Cámaras (Nº serie)</label>
+        <input id="pl-cams-${idx}" class="finput" placeholder="52861, 60131, 285CE" value="${data?.cameras||''}">
+      </div>
+      <div>
+        <label class="flabel">Estado descarga</label>
+        <select id="pl-status-${idx}" class="finput">
+          <option value="" ${!data?.download_status?'selected':''}>Sin estado</option>
+          <option value="pendiente" ${data?.download_status==='pendiente'?'selected':''}>Pendiente</option>
+          <option value="en_proceso" ${data?.download_status==='en_proceso'?'selected':''}>En proceso</option>
+          <option value="completa" ${data?.download_status==='completa'?'selected':''}>Completa</option>
+        </select>
+      </div>
+    </div>
+    <div class="pl-grid-3">
+      <div>
+        <label class="flabel">▲ Coloca</label>
+        <input id="pl-placed-${idx}" class="finput" placeholder="Mateo / AutoGestión" value="${data?.placed_by||''}">
+      </div>
+      <div>
+        <label class="flabel">▼ Descarga</label>
+        <input id="pl-dl-${idx}" class="finput" placeholder="Lucero / AutoGestión" value="${data?.downloaded_by||''}">
+      </div>
+      <div>
+        <label class="flabel">Previstos</label>
+        <input id="pl-pj-${idx}" class="finput" type="number" min="0" placeholder="0" value="${data?.planned_games??''}">
+      </div>
+    </div>`;
+
+  container.appendChild(row);
+  document.getElementById('pl-count').textContent = `${container.children.length} sesión${container.children.length!==1?'es':''}`;
+}
+
+function removePlanillaRow(idx) {
+  document.getElementById(`pl-row-${idx}`)?.remove();
+  const container = document.getElementById('pl-rows');
+  if (container) {
+    document.getElementById('pl-count').textContent = `${container.children.length} sesión${container.children.length!==1?'es':''}`;
+  }
+}
+
+function plUpdateDayLabels() {
+  // Re-render day selects for all rows when week changes
+  document.querySelectorAll('[id^="pl-day-"]').forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = plDayOptions(cur);
+  });
+}
+
+function savePlanilla() {
+  const rows = document.querySelectorAll('.pl-row');
+  if (!rows.length) { toast('⚠️ No hay sesiones para guardar'); return; }
+
+  let added = 0, updated = 0, skipped = 0;
+
+  rows.forEach(row => {
+    const idx = row.id.replace('pl-row-','');
+    const date   = document.getElementById(`pl-day-${idx}`)?.value;
+    const ligaId = document.getElementById(`pl-lg-${idx}`)?.value;
+    const venue  = (document.getElementById(`pl-venue-${idx}`)?.value || '').trim();
+    const camRaw = (document.getElementById(`pl-cams-${idx}`)?.value || '').trim();
+    const placed = (document.getElementById(`pl-placed-${idx}`)?.value || '').trim();
+    const dl     = (document.getElementById(`pl-dl-${idx}`)?.value || '').trim();
+    const pj     = document.getElementById(`pl-pj-${idx}`)?.value;
+    const ds     = document.getElementById(`pl-status-${idx}`)?.value || '';
+
+    if (!date || !ligaId) { skipped++; return; }
+
+    const cams = camRaw ? camRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    const planned = pj !== '' && pj != null ? parseInt(pj) : null;
+
+    const existing = sessions.findIndex(s => s.liga === ligaId && s.date === date && s.venue === venue);
+    if (existing >= 0) {
+      // No-destructivo: solo actualiza logística, no pisa confirmaciones del equipo
+      sessions[existing].cameras       = cams;
+      sessions[existing].placed_by     = placed;
+      sessions[existing].retrieved_by  = placed;
+      sessions[existing].downloaded_by = dl;
+      sessions[existing].planned_games = planned;
+      if (!sessions[existing].status_changed_by) {
+        sessions[existing].download_status = ds;
+      }
+      updated++;
+    } else {
+      sessions.push({
+        id: uid(), date, liga: ligaId, venue, courts: [],
+        cameras: cams, placed_by: placed, retrieved_by: placed, downloaded_by: dl,
+        start_time: '', end_time: '', download_status: ds,
+        planned_games: planned, confirmed_games: 0, delivered_games: 0, notes: '',
+      });
+      added++;
+    }
+  });
+
+  if (added + updated === 0 && skipped > 0) {
+    toast('⚠️ Completá al menos día y liga en cada fila'); return;
+  }
+
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  toast(`✅ ${added} sesiones nuevas · ${updated} actualizadas${skipped?' · '+skipped+' incompletas':''}`);
+  closePlanilla();
+  renderWeek();
+}
+
 function getWeekDates() {
   const now = new Date();
   // Semana Lun→Dom: getDay() 0=Dom→retroceder 6, 1=Lun→0, ..., 6=Sáb→5
@@ -3149,7 +3483,7 @@ function renderWeek() {
     const daySelected = ds.length && ds.every(s => selectedGames.has(s.id));
 
     const cards = ds.map(s => {
-      const lg  = getLg(s.liga);
+      const lg  = getLg(s.liga) || (s.liga_name ? { name: s.liga_name, icon: '🏆', color: '#888' } : null);
       const sel = selectedGames.has(s.id) ? ' selected' : '';
       const sc  = statusColor[s.download_status||''] || '#555';
       const sl  = statusLabel[s.download_status||''] || 'Sin estado';
@@ -3157,30 +3491,37 @@ function renderWeek() {
       const cameras = (s.cameras||[]).length ? s.cameras.join(', ') : '—';
       const conf = s.confirmed_games || 0;
       const prev = s.planned_games != null ? s.planned_games : null;
+      const deliv = s.delivered_games || 0;
       const canConfirm = (currentRole === 'admin' || currentRole === 'equipo');
-      const confByLine = s.confirmed_by
-        ? `<div style="font-size:9px;color:var(--t-3);margin-top:3px;text-align:right" onclick="event.stopPropagation()">
-            ✍ ${s.confirmed_by}${s.confirmed_at ? ' · ' + new Date(s.confirmed_at).toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}
-           </div>`
-        : '';
+      const fmtAt = iso => iso ? new Date(iso).toLocaleString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      const ds_is_completa = (s.download_status||'') === 'completa';
       const confirmBar = `
-        <div class="wc-confirm-bar${conf > 0 ? ' confirmed' : ''}" onclick="event.stopPropagation()">
-          <div class="wc-prev-lbl">
-            <strong>${prev ?? '—'}</strong>
-            previstos
+        <div class="wc-pipeline" onclick="event.stopPropagation()">
+          <div class="wc-pipe-stage">
+            <div class="wc-pipe-num">${prev ?? '—'}</div>
+            <div class="wc-pipe-lbl">PREV</div>
           </div>
-          <div>
-            <div class="wc-conf-wrap">
-              ${canConfirm ? `<button class="wc-conf-btn" onclick="quickConfirm('${s.id}',-1,event)" title="Restar">−</button>` : ''}
-              <div>
-                <div class="wc-conf-num${conf > 0 ? ' has-val' : ''}">${conf}</div>
-                <div class="wc-conf-lbl">cobr.</div>
-              </div>
-              ${canConfirm ? `<button class="wc-conf-btn" onclick="quickConfirm('${s.id}',1,event)" title="Sumar">+</button>` : ''}
-            </div>
+          <div class="wc-pipe-arrow">→</div>
+          <div class="wc-pipe-stage${conf > 0 ? ' active-efec' : ''}">
+            <div class="wc-pipe-num${conf > 0 ? ' v-efec' : ''}">${conf}</div>
+            <div class="wc-pipe-lbl">EFEC</div>
+            ${s.confirmed_by ? `<div class="wc-by" title="${fmtAt(s.confirmed_at)}">✓ ${s.confirmed_by}</div>` : ''}
+            ${canConfirm ? `<div class="wc-pipe-btns">
+              <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',-1,event)">−</button>
+              <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',1,event)">+</button>
+            </div>` : ''}
           </div>
-        </div>
-        ${confByLine}`;
+          <div class="wc-pipe-arrow">→</div>
+          <div class="wc-pipe-stage${deliv > 0 ? ' active-entr' : ''}">
+            <div class="wc-pipe-num${deliv > 0 ? ' v-entr' : ''}">${deliv}</div>
+            <div class="wc-pipe-lbl">ENTRE</div>
+            ${s.delivered_by ? `<div class="wc-by" title="${fmtAt(s.delivered_at)}">✓ ${s.delivered_by}</div>` : ''}
+            ${canConfirm ? `<div class="wc-pipe-btns">
+              <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',-1,event)">−</button>
+              <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',1,event)">+</button>
+            </div>` : ''}
+          </div>
+        </div>`;
       return `<div class="wc-game${sel}" data-gid="${s.id}" onclick="openSessionDetail('${s.id}')" style="--lc:${lg?.color||'#888'}">
         <span class="sel-chk" onclick="toggleGameSelect('${s.id}',event)">${selectedGames.has(s.id)?'✓':''}</span>
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
@@ -3188,12 +3529,19 @@ function renderWeek() {
           <span style="font-weight:700;font-size:12px;color:var(--t-0);line-height:1.2">${lg?.name||s.liga||'—'}</span>
         </div>
         ${s.venue ? `<div style="font-size:11px;color:var(--t-2);margin-bottom:2px">📍 ${s.venue}${courts?' · '+courts:''}</div>` : ''}
+        ${s.start_time ? `<div style="font-size:10px;color:var(--t-3);margin-bottom:2px">🕐 ${s.start_time}${s.end_time?' – '+s.end_time:''}</div>` : ''}
         ${cameras !== '—' ? `<div style="font-size:10px;color:var(--t-3);margin-bottom:3px;font-family:monospace">📷 ${cameras}</div>` : ''}
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
-          ${s.placed_by ? `<span style="font-size:10px;color:var(--t-3)">▲ ${s.placed_by}</span>` : ''}
-          ${s.downloaded_by ? `<span style="font-size:10px;color:var(--t-3)">▼ ${s.downloaded_by}</span>` : ''}
+          ${s.placed_by ? `<span style="font-size:10px;color:var(--t-3)" title="Coloca">▲ ${s.placed_by}</span>` : ''}
+          ${s.retrieved_by ? `<span style="font-size:10px;color:var(--t-3)" title="Retira">↩ ${s.retrieved_by}</span>` : ''}
+          ${s.downloaded_by ? `<span style="font-size:10px;color:var(--t-3)" title="Descarga">▼ ${s.downloaded_by}</span>` : ''}
         </div>
-        <span style="font-size:10px;font-weight:700;color:${sc};background:${sc}22;padding:2px 6px;border-radius:4px;display:inline-block">${sl}</span>
+        <div class="wc-status-row" onclick="event.stopPropagation()">
+          <span style="font-size:10px;font-weight:700;color:${sc};background:${sc}22;padding:2px 6px;border-radius:4px">${sl}</span>
+          ${s.status_changed_by ? `<span style="font-size:9px;color:var(--t-3)" title="${fmtAt(s.status_changed_at)}">✓ ${s.status_changed_by}</span>` : ''}
+          ${canConfirm && !ds_is_completa ? `<button class="wc-quick-btn" onclick="quickStatus('${s.id}','completa',event)">→ Completa</button>` : ''}
+          ${canConfirm && ds_is_completa ? `<button class="wc-quick-btn active" onclick="quickStatus('${s.id}','pendiente',event)">↩ Revertir</button>` : ''}
+        </div>
         ${confirmBar}
       </div>`;
     }).join('');
@@ -3379,54 +3727,63 @@ function renderKanban() {
     return;
   }
 
-  // Clasificar en 3 columnas
-  const previstas   = all.filter(s => !s.delivered && !(s.confirmed_games > 0));
-  const efectivas   = all.filter(s => !s.delivered &&  (s.confirmed_games > 0));
-  const entregados  = all.filter(s =>  s.delivered);
+  // Clasificar en 3 columnas (pipeline: prevista → efectiva → entregada)
+  const previstas   = all.filter(s => !(s.confirmed_games > 0) && !((s.delivered_games||0) > 0));
+  const efectivas   = all.filter(s =>   (s.confirmed_games > 0) && !((s.delivered_games||0) > 0));
+  const entregados  = all.filter(s =>  (s.delivered_games||0) > 0);
 
   function kbCard(s) {
     const lgObj = getLg(s.liga);
-    const prev  = s.planned_games   || 0;
+    const prev  = s.planned_games   ?? '—';
     const efec  = s.confirmed_games || 0;
+    const deliv = s.delivered_games || 0;
     const dateLabel = s.date ? fmtDate(s.date) : '—';
-    const confirmedLine = efec
-      ? `<div style="font-size:11px;color:var(--green);margin-top:3px">✅ ${efec} efectivos${s.confirmed_by?' · '+s.confirmed_by:''}</div>`
-      : '';
-    const deliverBtn = !s.delivered
-      ? `<button class="btn btn-xs" style="margin-top:8px;width:100%;background:rgba(44,185,96,.12);color:#2cb960;border:1px solid rgba(44,185,96,.25);font-size:10px" onclick="event.stopPropagation();markDelivered('${s.id}')">📦 Marcar entregado</button>`
-      : `<div style="font-size:10px;color:#2cb960;margin-top:6px">📦 Entregado${s.delivered_by?' · '+s.delivered_by:''}</div>`;
+    const canAct = (currentRole === 'admin' || currentRole === 'equipo');
     const dateRentals = s.date ? rentals.filter(r => r.type === 'partido' && r.game_date === s.date) : [];
     const rentalBadge = dateRentals.length
       ? `<div style="font-size:10px;color:var(--orange);margin-top:4px">📷 ${dateRentals.map(r=>r.camera_serial+' · '+r.client_name).join(' | ')}</div>`
       : '';
     const isSelected = kbSelected.has(s.id);
-    const cardClick = kbSelMode
-      ? `toggleKbCard('${s.id}', this)`
-      : `openSessionEditModal('${s.id}')`;
+    const cardClick = kbSelMode ? `toggleKbCard('${s.id}', this)` : `openSessionEditModal('${s.id}')`;
     const checkBox = kbSelMode
       ? `<div style="width:18px;height:18px;border-radius:4px;border:2px solid ${isSelected?'#2cb960':'rgba(255,255,255,.3)'};background:${isSelected?'#2cb960':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">${isSelected?'✓':''}</div>`
       : `<span style="font-size:11px;color:var(--t-3);flex-shrink:0;margin-top:2px">✎</span>`;
+    const pipeline = `
+      <div style="display:flex;align-items:center;gap:4px;margin-top:10px" onclick="event.stopPropagation()">
+        <div style="flex:1;text-align:center;background:var(--bg-3);border:1px solid var(--b-0);border-radius:6px;padding:5px 4px">
+          <div style="font-size:20px;font-weight:900;color:${prev!=='—'?'var(--t-1)':'var(--t-3)'}">${prev}</div>
+          <div style="font-size:8px;color:var(--t-3);letter-spacing:.5px">PREV</div>
+        </div>
+        <div style="font-size:10px;color:var(--t-3)">→</div>
+        <div style="flex:1;text-align:center;background:${efec>0?'rgba(44,185,96,.1)':'var(--bg-3)'};border:1px solid ${efec>0?'rgba(44,185,96,.35)':'var(--b-0)'};border-radius:6px;padding:5px 4px">
+          <div style="font-size:20px;font-weight:900;color:${efec>0?'#2cb960':'var(--t-3)'}">${efec}</div>
+          <div style="font-size:8px;color:var(--t-3);letter-spacing:.5px">EFEC</div>
+          ${canAct?`<div style="display:flex;justify-content:center;gap:4px;margin-top:3px">
+            <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',-1,event)">−</button>
+            <button class="wc-pipe-btn" onclick="quickConfirm('${s.id}',1,event)">+</button>
+          </div>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--t-3)">→</div>
+        <div style="flex:1;text-align:center;background:${deliv>0?'rgba(246,161,25,.1)':'var(--bg-3)'};border:1px solid ${deliv>0?'rgba(246,161,25,.35)':'var(--b-0)'};border-radius:6px;padding:5px 4px">
+          <div style="font-size:20px;font-weight:900;color:${deliv>0?'var(--orange)':'var(--t-3)'}">${deliv}</div>
+          <div style="font-size:8px;color:var(--t-3);letter-spacing:.5px">ENTRE</div>
+          ${canAct?`<div style="display:flex;justify-content:center;gap:4px;margin-top:3px">
+            <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',-1,event)">−</button>
+            <button class="wc-pipe-btn" onclick="quickDeliver('${s.id}',1,event)">+</button>
+          </div>`:''}
+        </div>
+      </div>`;
     return `<div class="kb-card${isSelected?' kb-selected':''}" onclick="${cardClick}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
         <div>
           <div style="font-size:12px;font-weight:800;color:${lgObj?.color||'var(--orange)'}">${lgObj?.icon||'🏆'} ${lgObj?.name||'—'}</div>
           <div style="font-size:11px;color:var(--t-2);margin-top:3px">📅 ${dateLabel}${s.venue?' · 📍'+s.venue:''}</div>
+          ${s.placed_by?`<div style="font-size:10px;color:var(--t-3);margin-top:2px">▲ ${s.placed_by}</div>`:''}
         </div>
         ${checkBox}
       </div>
       ${rentalBadge}
-      <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
-        <div style="text-align:center">
-          <div style="font-size:18px;font-weight:900;color:${prev?'var(--t-1)':'var(--t-3)'}">${prev||'—'}</div>
-          <div style="font-size:9px;color:var(--t-3);text-transform:uppercase;letter-spacing:.5px">Previstos</div>
-        </div>
-        ${efec?`<div style="text-align:center">
-          <div style="font-size:18px;font-weight:900;color:#2cb960">${efec}</div>
-          <div style="font-size:9px;color:var(--t-3);text-transform:uppercase;letter-spacing:.5px">Efectivos</div>
-        </div>`:''}
-      </div>
-      ${confirmedLine}
-      ${deliverBtn}
+      ${pipeline}
     </div>`;
   }
 
@@ -4507,6 +4864,265 @@ function seedApril2026() {
   sessions.push(...newSessions);
   store(LS.ss, sessions);
   toast(`📅 Abril 2026 cargado: ${newGames.length} sesiones`);
+}
+
+/* ──────────────────────────────────────────────
+   SEEDER LOGÍSTICA SEMANA 18-24 ABRIL 2026
+   Fuente: Google Sheets gid=1141150411 (planilla actual)
+   ────────────────────────────────────────────── */
+function seedLogisticaAbril18_24() {
+  const KEY = 'ps2_seeded_logistica_abril18_24_v3';
+  if (localStorage.getItem(KEY)) return;
+  // Limpiar versiones viejas
+  ['v1','v2'].forEach(v => localStorage.removeItem(`ps2_seeded_logistica_abril18_24_${v}`));
+  localStorage.setItem(KEY, '1');
+
+  const lgMap = {};
+  leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
+  function lgId(name) {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return lgMap[n] || leagues.find(l => l.name.toLowerCase().includes(n) || n.includes(l.name.toLowerCase()))?.id || null;
+  }
+
+  // Datos exactos planilla semana sáb 18 → vie 24 abril 2026
+  // cam: seriales de cámara | placed/retrieved/downloaded: operadores
+  const data = [
+    // ── SÁBADO 18 ──
+    { date:'2026-04-18', lg:'DTA',          venue:'Reducto',             cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-18', lg:'DTA',          venue:'Ateneo',              cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-18', lg:'Liga del Rey', venue:'Yacht',               cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'09:00', end:'10:00' },
+    { date:'2026-04-18', lg:'Liga Celeste', venue:'Werden Bremen',       cam:'',               placed:'Mauro',        retrieved:'Mauro',              downloaded:'Mauro',   start:'',      end:''      },
+    { date:'2026-04-18', lg:'Liga Kings',   venue:'Zona Lab',            cam:'',               placed:'AutoGestión',  retrieved:'AutoGestión',        downloaded:'AutoGestión', start:'16:00', end:'21:00' },
+    { date:'2026-04-18', lg:'FUBB',         venue:'25 de ago',           cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'',      end:''      },
+    { date:'2026-04-18', lg:'FUBB',         venue:'Yale',                cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'',      end:''      },
+    { date:'2026-04-18', lg:'Piriápolis',   venue:'Puro Fut',            cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    // ── DOMINGO 19 ──
+    { date:'2026-04-19', lg:'Solymar',      venue:'Casuarinas',          cam:'6 // 15 // 8',   placed:'Lucero',       retrieved:'Lucero',             downloaded:'Lucero',  start:'09:00', end:'12:00' },
+    { date:'2026-04-19', lg:'Liga América', venue:'Jack 4',              cam:'',               placed:'Mateo',        retrieved:'Queda en depósito',  downloaded:'Ale',     start:'09:00', end:'15:15' },
+    { date:'2026-04-19', lg:'Liga América', venue:'UC102',               cam:'',               placed:'Mateo',        retrieved:'Lucero',             downloaded:'Ale',     start:'09:00', end:'15:15' },
+    { date:'2026-04-19', lg:'Liga América', venue:'SMU 3/4',             cam:'',               placed:'Mateo',        retrieved:'Queda en depósito',  downloaded:'Ale',     start:'09:00', end:'15:15' },
+    { date:'2026-04-19', lg:'DTA',          venue:'Defensores/Albatros', cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-19', lg:'DTA',          venue:'25 de ago/Sayago',    cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-19', lg:'Liga del Rey', venue:'Yacht',               cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'09:00', end:'12:00' },
+    { date:'2026-04-19', lg:'Liga Celeste', venue:'La Cantera',          cam:'',               placed:'Mauro',        retrieved:'Mauro',              downloaded:'Mauro',   start:'',      end:''      },
+    { date:'2026-04-19', lg:'Liga Kings',   venue:'Zona Lab',            cam:'',               placed:'AutoGestión',  retrieved:'AutoGestión',        downloaded:'AutoGestión', start:'16:00', end:'21:00' },
+    { date:'2026-04-19', lg:'Liga Lokura',  venue:'Complejo Lokura',     cam:'',               placed:'Liga Lokura',  retrieved:'Liga Lokura',        downloaded:'Mateo',   start:'08:00', end:'13:30' },
+    { date:'2026-04-19', lg:'Piriápolis',   venue:'Solanas',             cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-19', lg:'Liga PRO',     venue:'Nazzasi',             cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    // ── LUNES 20 ──
+    { date:'2026-04-20', lg:'Solymar',      venue:'Lomas 3',             cam:'6',              placed:'Lucero',       retrieved:'Queda en depósito',  downloaded:'Lucero',  start:'20:00', end:'23:00' },
+    // ── MARTES 21 ──
+    { date:'2026-04-21', lg:'Solymar',      venue:'Lomas 3',             cam:'6',              placed:'Lucero',       retrieved:'Queda en depósito',  downloaded:'Lucero',  start:'20:15', end:'23:15' },
+    { date:'2026-04-21', lg:'Solymar',      venue:'Zona Lab',            cam:'15 // 8',        placed:'Lucero',       retrieved:'Lucero',             downloaded:'Lucero',  start:'21:00', end:'23:00' },
+    // ── MIÉRCOLES 22 ──
+    { date:'2026-04-22', lg:'Solymar',      venue:'Lomas 3',             cam:'6',              placed:'Lucero',       retrieved:'Queda en depósito',  downloaded:'Lucero',  start:'21:15', end:'23:15' },
+    { date:'2026-04-22', lg:'Solymar',      venue:'Zona Lab',            cam:'15 // 8',        placed:'Lucero',       retrieved:'Lucero',             downloaded:'Lucero',  start:'20:00', end:'22:00' },
+    { date:'2026-04-22', lg:'DTA',          venue:'Santelmo/Olivol',     cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-22', lg:'DTA',          venue:'Defensores',          cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-22', lg:'Liga PRO',     venue:'Nazzasi',             cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    // ── JUEVES 23 ──
+    { date:'2026-04-23', lg:'Solymar',      venue:'Lomas 3',             cam:'6',              placed:'Lucero',       retrieved:'Queda en depósito',  downloaded:'Lucero',  start:'20:15', end:'22:15' },
+    { date:'2026-04-23', lg:'DTA',          venue:'Layva',               cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-23', lg:'DTA',          venue:'Capurro/Auriblanco',  cam:'',               placed:'',             retrieved:'',                   downloaded:'',        start:'',      end:''      },
+    { date:'2026-04-23', lg:'Liga del Rey', venue:'Yacht',               cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'21:00', end:''      },
+    // ── VIERNES 24 ──
+    { date:'2026-04-24', lg:'Solymar',      venue:'Invictus',            cam:'15 // 8',        placed:'Lucero',       retrieved:'Queda en depósito',  downloaded:'Lucero',  start:'20:00', end:'22:00' },
+    { date:'2026-04-24', lg:'FUBB',         venue:'Malvin',              cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'21:00', end:''      },
+    { date:'2026-04-24', lg:'FUBB',         venue:'Juventud',            cam:'',               placed:'Mateo',        retrieved:'Mateo',              downloaded:'Mateo',   start:'',      end:''      },
+  ];
+
+  // UPSERT: actualiza si ya existe, agrega si no
+  let added = 0, updated = 0;
+  data.forEach(t => {
+    const lid = lgId(t.lg);
+    if (!lid) { console.warn('[seed] liga no encontrada:', t.lg); return; }
+    const cams = t.cam ? t.cam.split('//').map(x=>x.trim()).filter(Boolean) : [];
+    const obj = {
+      date: t.date, liga: lid,
+      venue: t.venue, courts: [],
+      cameras: cams,
+      placed_by: t.placed, retrieved_by: t.retrieved, downloaded_by: t.downloaded,
+      start_time: t.start, end_time: t.end,
+      download_status: 'pendiente',
+    };
+    const idx = sessions.findIndex(s => s.liga === lid && s.date === t.date && s.venue === t.venue);
+    if (idx >= 0) {
+      // Solo actualiza campos operativos, no toca contadores
+      sessions[idx] = { ...sessions[idx], ...obj };
+      updated++;
+    } else {
+      sessions.push({ id: uid(), ...obj, planned_games: null, confirmed_games: 0, delivered_games: 0, notes: '' });
+      added++;
+    }
+  });
+
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  toast(`📅 Logística 18-24 abr: ${added} nuevas · ${updated} actualizadas`);
+}
+
+/* ──────────────────────────────────────────────
+   PLANILLA PDF ABRIL 2026 — 3 semanas
+   Fuente: _ABRIL 2026.pdf (planilla logística)
+   Semana 1: 6-12 abr | Semana 2: 13-19 abr | Semana 3: 20-26 abr
+   Notas: Liga Uruguay sin actividad (omitida). Liga Pando: AutoGestión.
+   Corre en cada carga. UPSERT no-destructivo:
+   - Siempre actualiza: cámaras, operadores, horarios, planned_games
+   - NUNCA pisa: download_status (si el equipo lo cambió), confirmed_games,
+     delivered_games, confirmed_by, delivered_by, status_changed_by
+   ────────────────────────────────────────────── */
+function seedPDFAbril2026() {
+  const lgMap = {};
+  leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
+  function lgId(name) {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return lgMap[n] || leagues.find(l => l.name.toLowerCase().includes(n) || n.includes(l.name.toLowerCase()))?.id || null;
+  }
+
+  // ds: 'completa' | 'pendiente' | '' (sin dato)
+  // pj: partidos previstos según planilla
+  const data = [
+    // ══════════ SEMANA 1: 6-12 ABRIL ══════════
+    // ── Lunes 6 ──
+    { date:'2026-04-06', lg:'Solymar',        venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-06', lg:'Liga PRO',        venue:'Polideportivo Carrasco',cam:'61167,49133',             placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:0,  start:'', end:'' },
+    // ── Martes 7 ──
+    { date:'2026-04-07', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-07', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:1,  start:'', end:'' },
+    { date:'2026-04-07', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:0,  start:'20:00', end:'23:00' },
+    // ── Miércoles 8 ──
+    { date:'2026-04-08', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-08', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:0,  start:'', end:'' },
+    { date:'2026-04-08', lg:'Liga Kings',      venue:'Zona Lab',              cam:'52861,60131,285CE',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:6,  start:'', end:'' },
+    { date:'2026-04-08', lg:'Liga Pando',      venue:'',                      cam:'60139,6467',              placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-08', lg:'Liga PRO',        venue:'Nazzasi',               cam:'49056,25202',             placed:'Mateo',       downloaded:'Mateo',       ds:'completa', pj:0,  start:'', end:'' },
+    // ── Jueves 9 ──
+    { date:'2026-04-09', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    // ── Viernes 10 ──
+    { date:'2026-04-10', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    // ── Sábado 11 ──
+    { date:'2026-04-11', lg:'Solymar',         venue:'Zona Lab',              cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-11', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:0,  start:'', end:'' },
+    { date:'2026-04-11', lg:'Liga Kings',      venue:'Zona Lab',              cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:6,  start:'', end:'' },
+    // ── Domingo 12 ──
+    { date:'2026-04-12', lg:'Solymar',         venue:'Los Cardales',          cam:'285CE,49133,49056,10926,50901,50906', placed:'AutoGestión', downloaded:'AutoGestión', ds:'', pj:0, start:'', end:'' },
+    { date:'2026-04-12', lg:'Liga América',    venue:'Los Cardales',          cam:'2588E,07082,61167',       placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-12', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:0,  start:'', end:'' },
+    { date:'2026-04-12', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'pendiente',pj:2,  start:'', end:'' },
+    { date:'2026-04-12', lg:'Liga Kings',      venue:'Zona Lab',              cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:7,  start:'', end:'' },
+    { date:'2026-04-12', lg:'Liga PRO',        venue:'Nazzasi',               cam:'285CE,49133,49056,10926', placed:'Agustín',     downloaded:'Agustín',     ds:'',         pj:0,  start:'', end:'' },
+
+    // ══════════ SEMANA 2: 13-19 ABRIL ══════════
+    // ── Lunes 13 ──
+    { date:'2026-04-13', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:4,  start:'', end:'' },
+    { date:'2026-04-13', lg:'Liga PRO',        venue:'Polideportivo Carrasco',cam:'61167,49133',             placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-13', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:6,  start:'', end:'' },
+    // ── Martes 14 ──
+    { date:'2026-04-14', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-14', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-14', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:0,  start:'20:00', end:'23:00' },
+    // ── Miércoles 15 ──
+    { date:'2026-04-15', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-15', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:4,  start:'', end:'' },
+    { date:'2026-04-15', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131,285CE',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:6,  start:'', end:'' },
+    { date:'2026-04-15', lg:'Liga Pando',      venue:'',                      cam:'60139,6467',              placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-15', lg:'Liga PRO',        venue:'Nazzasi',               cam:'49056,25202',             placed:'Mateo',       downloaded:'Mateo',       ds:'completa', pj:0,  start:'', end:'' },
+    { date:'2026-04-15', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:6,  start:'', end:'' },
+    // ── Jueves 16 ──
+    { date:'2026-04-16', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-16', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:8,  start:'', end:'' },
+    // ── Viernes 17 ──
+    { date:'2026-04-17', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-17', lg:'Liga PRO',        venue:'',                      cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:11, start:'', end:'' },
+    // ── Sábado 18 ──
+    { date:'2026-04-18', lg:'Solymar',         venue:'Zona Lab',              cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-18', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:0,  start:'', end:'' },
+    { date:'2026-04-18', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:6,  start:'', end:'' },
+    // ── Domingo 19 ──
+    { date:'2026-04-19', lg:'Solymar',         venue:'Los Cardales',          cam:'285CE,49133,49056,10926,50901,50906', placed:'AutoGestión', downloaded:'AutoGestión', ds:'', pj:6, start:'', end:'' },
+    { date:'2026-04-19', lg:'Liga América',    venue:'Los Cardales',          cam:'2588E,07082,61167',       placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:11, start:'', end:'' },
+    { date:'2026-04-19', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:0,  start:'', end:'' },
+    { date:'2026-04-19', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'pendiente',pj:3,  start:'', end:'' },
+    { date:'2026-04-19', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:7,  start:'', end:'' },
+    { date:'2026-04-19', lg:'Liga PRO',        venue:'Nazzasi',               cam:'285CE,49133,49056,10926', placed:'Agustín',     downloaded:'Agustín',     ds:'',         pj:0,  start:'', end:'' },
+
+    // ══════════ SEMANA 3: 20-26 ABRIL ══════════
+    // ── Lunes 20 ──
+    { date:'2026-04-20', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:3,  start:'', end:'' },
+    { date:'2026-04-20', lg:'Liga PRO',        venue:'Polideportivo Carrasco',cam:'61167,49133',             placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-20', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:6,  start:'', end:'' },
+    // ── Martes 21 ──
+    { date:'2026-04-21', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:1,  start:'', end:'' },
+    { date:'2026-04-21', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:1,  start:'', end:'' },
+    { date:'2026-04-21', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:3,  start:'20:00', end:'23:00' },
+    // ── Miércoles 22 ──
+    { date:'2026-04-22', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:2,  start:'', end:'' },
+    { date:'2026-04-22', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:4,  start:'', end:'' },
+    { date:'2026-04-22', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131,285CE',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'completa', pj:6,  start:'', end:'' },
+    { date:'2026-04-22', lg:'Liga Pando',      venue:'',                      cam:'60139,6467',              placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-22', lg:'Liga PRO',        venue:'Nazzasi',               cam:'49056,25202',             placed:'Mateo',       downloaded:'Mateo',       ds:'completa', pj:0,  start:'', end:'' },
+    { date:'2026-04-22', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:6,  start:'', end:'' },
+    // ── Jueves 23 ──
+    { date:'2026-04-23', lg:'Solymar',         venue:'Lomas 3',               cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:0,  start:'', end:'' },
+    { date:'2026-04-23', lg:'Liga MVD',        venue:'Palermo',               cam:'',                        placed:'',            downloaded:'',            ds:'',         pj:8,  start:'', end:'' },
+    // ── Viernes 24 ──
+    { date:'2026-04-24', lg:'Solymar',         venue:'Zona Lab',              cam:'50934,60648,12766',       placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:1,  start:'', end:'' },
+    { date:'2026-04-24', lg:'Liga PRO',        venue:'',                      cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:11, start:'', end:'' },
+    // ── Sábado 25 ──
+    { date:'2026-04-25', lg:'Solymar',         venue:'Zona Lab',              cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:1,  start:'', end:'' },
+    { date:'2026-04-25', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:10, start:'', end:'' },
+    { date:'2026-04-25', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:6,  start:'', end:'' },
+    { date:'2026-04-25', lg:'Liga PRO',        venue:'',                      cam:'',                        placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:27, start:'', end:'' },
+    // ── Domingo 26 ──
+    { date:'2026-04-26', lg:'Solymar',         venue:'Los Cardales',          cam:'285CE,49133,49056,10926,50901,50906', placed:'AutoGestión', downloaded:'AutoGestión', ds:'', pj:9, start:'', end:'' },
+    { date:'2026-04-26', lg:'Liga América',    venue:'Los Cardales',          cam:'2588E,07082,61167',       placed:'Mauro',       downloaded:'Mauro',       ds:'',         pj:11, start:'', end:'' },
+    { date:'2026-04-26', lg:'Liga Celeste',    venue:'La Cantera',            cam:'',                        placed:'Mauro & Agustín', downloaded:'Mauro & Agustín', ds:'', pj:3,  start:'', end:'' },
+    { date:'2026-04-26', lg:'Liga Solo Fútbol',venue:'PDR F5',                cam:'10926',                   placed:'AutoGestión', downloaded:'AutoGestión', ds:'pendiente',pj:3,  start:'', end:'' },
+    { date:'2026-04-26', lg:'Liga Kings',      venue:'Pro Futbol',            cam:'52861,60131',             placed:'AutoGestión', downloaded:'AutoGestión', ds:'',         pj:7,  start:'', end:'' },
+    { date:'2026-04-26', lg:'Liga PRO',        venue:'Nazzasi',               cam:'285CE,49133,49056,10926', placed:'Agustín',     downloaded:'Agustín',     ds:'',         pj:16, start:'', end:'' },
+  ];
+
+  let added = 0, updated = 0;
+  data.forEach(t => {
+    const lid = lgId(t.lg);
+    if (!lid) { console.warn('[seedPDF] liga no encontrada:', t.lg); return; }
+    const cams = t.cam ? t.cam.split(',').map(x => x.trim()).filter(Boolean) : [];
+    const obj = {
+      date: t.date, liga: lid,
+      venue: t.venue, courts: [],
+      cameras: cams,
+      placed_by: t.placed, retrieved_by: t.placed, downloaded_by: t.downloaded,
+      start_time: t.start, end_time: t.end,
+      download_status: t.ds,
+      planned_games: t.pj || null,
+    };
+    const idx = sessions.findIndex(s => s.liga === lid && s.date === t.date && s.venue === t.venue);
+    if (idx >= 0) {
+      sessions[idx].liga_name    = t.lg;
+      sessions[idx].cameras      = cams;
+      sessions[idx].placed_by    = t.placed;
+      sessions[idx].retrieved_by = t.placed;
+      sessions[idx].downloaded_by= t.downloaded;
+      sessions[idx].start_time   = t.start;
+      sessions[idx].end_time     = t.end;
+      sessions[idx].planned_games= t.pj || null;
+      if (!sessions[idx].status_changed_by) {
+        sessions[idx].download_status = t.ds;
+      }
+      updated++;
+    } else {
+      sessions.push({ id: uid(), ...obj, liga_name: t.lg, confirmed_games: 0, delivered_games: 0, notes: '' });
+      added++;
+    }
+  });
+
+  if (added > 0 || updated > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    if (added > 0) toast(`📅 Planilla abril: ${added} sesiones nuevas`);
+  }
 }
 
 /* ──────────────────────────────────────────────
@@ -5979,7 +6595,7 @@ document.addEventListener('keydown', e => {
   setInterval(updateDate, 60000);
   document.getElementById('ag-date').value = today();
   seedMarch2026();   // carga datos del PDF si es primera vez
-  // seedApril2026() corre dentro de startFirestoreSync cuando Firebase está listo
+  // seedApril2026() y seedLogisticaAbril18_24() corren dentro de startFirestoreSync cuando Firebase está listo
   renderDash();
   console.log('%cBúho Visión 🦉','color:#f6a119;font-size:16px;font-weight:900');
   console.log('%c⌘/Ctrl+N → Nuevo partido   ⌘/Ctrl+K → Buscar   Esc → Cerrar','color:#555;font-size:11px');
@@ -6149,11 +6765,40 @@ function quickConfirm(sessionId, delta, event) {
   sessions[idx].confirmed_by   = currentUser?.name || currentUser?.email || '—';
   sessions[idx].confirmed_at   = new Date().toISOString();
   store(LS.ss, sessions);
-  try {
-    const db = firebase.firestore();
-    db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true });
-  } catch(e) {}
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
   renderWeek();
+  if (document.getElementById('prod-list')) renderKanban();
+}
+
+function quickDeliver(sessionId, delta, event) {
+  event.stopPropagation();
+  const idx = sessions.findIndex(s => s.id === sessionId);
+  if (idx < 0) return;
+  const current = sessions[idx].delivered_games || 0;
+  const next = Math.max(0, current + delta);
+  sessions[idx].delivered_games = next;
+  sessions[idx].delivered       = next > 0;
+  sessions[idx].delivered_by    = currentUser?.name || currentUser?.email || '—';
+  sessions[idx].delivered_at    = new Date().toISOString();
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  renderWeek();
+  if (document.getElementById('prod-list')) renderKanban();
+}
+
+function quickStatus(sessionId, status, event) {
+  event.stopPropagation();
+  const idx = sessions.findIndex(s => s.id === sessionId);
+  if (idx < 0) return;
+  sessions[idx].download_status     = status;
+  sessions[idx].status_changed_by   = currentUser?.name || currentUser?.email || '—';
+  sessions[idx].status_changed_at   = new Date().toISOString();
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  const labels = { completa:'Completa', pendiente:'Pendiente', en_proceso:'En proceso', '':'Sin estado' };
+  toast(`✅ ${labels[status]||status} · ${sessions[idx].status_changed_by}`);
+  renderWeek();
+  if (document.getElementById('prod-list')) renderKanban();
 }
 
 function openSessionDetail(id) {
@@ -6169,7 +6814,7 @@ function openSessionEditModal(id) {
 }
 
 function openNewSession(date) {
-  openSessionModal({ id: uid(), date, liga: '', venue: '', courts: [], cameras: [], placed_by: '', downloaded_by: '', download_status: '', planned_games: null, confirmed_games: 0, notes: '' }, true);
+  openSessionModal({ id: uid(), date, liga: '', venue: '', courts: [], cameras: [], placed_by: '', downloaded_by: '', download_status: '', planned_games: null, confirmed_games: 0, delivered_games: 0, notes: '' }, true);
 }
 
 function openSessionModal(s, isNew) {
@@ -6222,12 +6867,26 @@ function openSessionModal(s, isNew) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>
-            <label class="flabel">Quién coloca</label>
-            <input id="sm-placed" type="text" class="finput" placeholder="Autogestion / Mauro…" value="${s.placed_by||''}">
+            <label class="flabel">Horario inicio</label>
+            <input id="sm-start-time" type="time" class="finput" value="${s.start_time||''}">
           </div>
           <div>
-            <label class="flabel">Quién descarga</label>
-            <input id="sm-downloaded" type="text" class="finput" placeholder="Autogestion / Mauro…" value="${s.downloaded_by||''}">
+            <label class="flabel">Horario fin</label>
+            <input id="sm-end-time" type="time" class="finput" value="${s.end_time||''}">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <label class="flabel">▲ Coloca</label>
+            <input id="sm-placed" type="text" class="finput" placeholder="Lucero / Mateo…" value="${s.placed_by||''}">
+          </div>
+          <div>
+            <label class="flabel">↩ Retira</label>
+            <input id="sm-retrieved" type="text" class="finput" placeholder="Lucero / Depósito…" value="${s.retrieved_by||''}">
+          </div>
+          <div>
+            <label class="flabel">▼ Descarga</label>
+            <input id="sm-downloaded" type="text" class="finput" placeholder="Lucero / Mateo…" value="${s.downloaded_by||''}">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -6236,9 +6895,13 @@ function openSessionModal(s, isNew) {
             <input id="sm-planned" type="number" min="0" class="finput" value="${s.planned_games!=null?s.planned_games:''}">
           </div>
           <div>
-            <label class="flabel">Partidos confirmados</label>
+            <label class="flabel">Partidos efectivos</label>
             <input id="sm-confirmed" type="number" min="0" class="finput" value="${s.confirmed_games||0}">
           </div>
+        </div>
+        <div>
+          <label class="flabel">Partidos entregados</label>
+          <input id="sm-delivered" type="number" min="0" class="finput" value="${s.delivered_games||0}">
         </div>
         <div>
           <label class="flabel">Notas</label>
@@ -6289,11 +6952,15 @@ function saveSession(id) {
     venue:            document.getElementById('sm-venue').value,
     courts:           document.getElementById('sm-courts').value.split(',').map(x=>x.trim()).filter(Boolean),
     cameras:          document.getElementById('sm-cameras').value.split(',').map(x=>x.trim()).filter(Boolean),
+    start_time:       document.getElementById('sm-start-time').value.trim(),
+    end_time:         document.getElementById('sm-end-time').value.trim(),
     placed_by:        document.getElementById('sm-placed').value.trim(),
+    retrieved_by:     document.getElementById('sm-retrieved').value.trim(),
     downloaded_by:    document.getElementById('sm-downloaded').value.trim(),
     download_status:  document.getElementById('sm-status').value,
     planned_games:    parseInt(document.getElementById('sm-planned').value)||null,
     confirmed_games:  parseInt(document.getElementById('sm-confirmed').value)||0,
+    delivered_games:  parseInt(document.getElementById('sm-delivered').value)||0,
     notes:            document.getElementById('sm-notes').value.trim(),
   };
   const idx = sessions.findIndex(s => s.id === id);
