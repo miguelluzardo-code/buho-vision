@@ -2712,11 +2712,9 @@ function startFirestoreSync() {
       // ── SYNC: leer datos de Firestore (fuente de verdad compartida) ──
       // Ligas
       if (d[LS.lg]) { leagues = d[LS.lg]; localStorage.setItem(LS.lg, JSON.stringify(leagues)); }
-      // Sesiones: SIEMPRE sincronizar para que cambios de otros usuarios (confirmed_games, etc.) se vean
+      // Sesiones: Firestore es la única fuente de verdad — reemplazar siempre
       if (d[LS.ss] && Array.isArray(d[LS.ss])) {
-        const fsMap = new Map(d[LS.ss].map(s => [s.id, s]));
-        const localOnly = sessions.filter(s => !fsMap.has(s.id));
-        sessions = [...d[LS.ss], ...localOnly];
+        sessions = d[LS.ss];
         localStorage.setItem(LS.ss, JSON.stringify(sessions));
       }
       // ── INIT: solo en el primer snapshot de la sesión (evita loop infinito) ──
@@ -2725,6 +2723,7 @@ function startFirestoreSync() {
       if (!window._appInitialized) {
         window._appInitialized = true;
         mergeDefaultLeagues();
+        deduplicateSessions();   // limpiar duplicados acumulados
         seedPDFAbril2026();
         repairOrphanedSessions();
       }
@@ -2846,6 +2845,35 @@ function getLg(id) {
 }
 
 // Agrega ligas del PDF que puedan faltar en la copia de Firestore (merge no-destructivo por nombre)
+// Elimina sesiones duplicadas (mismo liga+date+venue). Conserva la que tenga más datos.
+function deduplicateSessions() {
+  const seen = new Map(); // key → session id ganador
+  const toRemove = new Set();
+  sessions.forEach(s => {
+    const key = `${s.liga}|${s.date}|${(s.venue||'').toLowerCase()}`;
+    if (seen.has(key)) {
+      const existingId = seen.get(key);
+      const existing = sessions.find(x => x.id === existingId);
+      const sScore = (s.confirmed_games||0) + (s.delivered_games||0);
+      const eScore = (existing?.confirmed_games||0) + (existing?.delivered_games||0);
+      if (sScore > eScore) {
+        toRemove.add(existingId);
+        seen.set(key, s.id);
+      } else {
+        toRemove.add(s.id);
+      }
+    } else {
+      seen.set(key, s.id);
+    }
+  });
+  if (toRemove.size > 0) {
+    sessions = sessions.filter(s => !toRemove.has(s.id));
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    console.log(`[dedup] ${toRemove.size} sesiones duplicadas eliminadas`);
+  }
+}
+
 function mergeDefaultLeagues() {
   const REQUIRED = [
     { name:'Solymar',            sport:'Fútbol',   color:'#06b6d4', icon:'🌊', desc:'Lomas 3 · Zona Lab · Los Cardales' },
