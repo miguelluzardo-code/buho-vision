@@ -1514,6 +1514,9 @@ body {
         <span class="sb-icon">💰</span> Cobros
         <span class="sb-badge" id="badge-cobros" style="background:#ef4444">0</span>
       </div>
+      <div class="sb-item" onclick="nav('trazabilidad',this)">
+        <span class="sb-icon">📋</span> Trazabilidad
+      </div>
     </div>
     <div class="sb-group">
       <div class="sb-group-label">Agregar</div>
@@ -1778,7 +1781,17 @@ body {
                 </select>
               </div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="lpImport()" style="width:100%">🌐 Importar partidos</button>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="btn btn-primary btn-sm" onclick="lpImport()" style="flex:1">🌐 Importar jornada</button>
+              <button class="btn btn-sm" onclick="lpVerResultados()" style="flex:1;background:var(--accent);color:#fff">📊 Ver resultados</button>
+            </div>
+            <div id="lp-results-panel" style="display:none;margin-top:12px">
+              <div id="lp-results-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span id="lp-results-title" style="font-size:12px;font-weight:700;color:var(--t-0)"></span>
+                <button class="btn btn-primary btn-sm" onclick="lpGenerarTodos()" id="lp-generar-btn">⚡ Generar Gráficos</button>
+              </div>
+              <div id="lp-results-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
+            </div>
           </div>
 
           <div style="display:flex;align-items:center;gap:8px;color:var(--t-3);font-size:11px">
@@ -1992,6 +2005,41 @@ body {
       </div>
     </div>
 
+    <!-- ════════════════
+         TRAZABILIDAD DE CÁMARAS
+         ════════════════ -->
+    <div class="view" id="v-trazabilidad">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--t-0)">📋 Trazabilidad de cámaras</div>
+          <div style="font-size:12px;color:var(--t-2);margin-top:2px">Inventario Veo · Trípodes · Ubicaciones</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input class="finput" id="traz-search" placeholder="Buscar serie, club house, ubicación…" style="min-width:220px" oninput="renderTrazabilidad()">
+          <select class="fselect" id="traz-filter-clubhouse" onchange="renderTrazabilidad()" style="min-width:140px">
+            <option value="">— Club House —</option>
+            <option>URUGUAY 2</option>
+            <option>PERSONAL 2</option>
+            <option>BHV 1</option>
+            <option>BHV 3</option>
+            <option>BHV 9</option>
+            <option>TRANSMISION</option>
+            <option>BUHOVISION</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openAddCamaraModal(null)">+ Cámara</button>
+        </div>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div id="traz-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+      <!-- Cards grid -->
+      <div id="traz-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px"></div>
+      <div id="traz-empty" style="display:none;text-align:center;padding:48px 20px;color:var(--t-2);font-size:14px">
+        Sin resultados
+      </div>
+    </div>
+
   </div><!-- /content -->
 
   <!-- ══ MOBILE FAB ══ -->
@@ -2145,6 +2193,135 @@ body {
     <div class="m-foot">
       <button class="btn btn-ghost" onclick="closeM('m-add-rental')">Cancelar</button>
       <button class="btn btn-primary" id="rnt-save-btn" onclick="saveRental()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: POSESIÓN CÁMARA (equipo no-admin) ══ -->
+<div class="overlay" id="m-camara-posesion">
+  <div class="modal" style="max-width:420px">
+    <div class="m-head">
+      <div class="m-title">📍 Actualizar posesión</div>
+      <div class="m-close" onclick="closeM('m-camara-posesion')">✕</div>
+    </div>
+    <input type="hidden" id="pos-cam-id">
+    <div class="m-body">
+      <div id="pos-cam-info" style="background:var(--bg-2);border:1px solid var(--b-1);border-radius:var(--r-sm);padding:12px;margin-bottom:16px;font-size:13px;color:var(--t-1)"></div>
+      <div class="form-grid">
+        <div class="fg">
+          <label class="flabel">Club House</label>
+          <select class="fselect" id="pos-clubhouse">
+            <option value="">— Sin asignar —</option>
+            <option>URUGUAY 2</option>
+            <option>PERSONAL 2</option>
+            <option>BHV 1</option>
+            <option>BHV 3</option>
+            <option>BHV 9</option>
+            <option>TRANSMISION</option>
+            <option>BUHOVISION</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Ubicación actual</label>
+          <input class="finput" id="pos-ubicacion" placeholder="LIGA KINGS, CASA MAURO…" style="text-transform:uppercase">
+        </div>
+        <div class="fg full">
+          <label class="flabel">Movimiento / Nota</label>
+          <input class="finput" id="pos-movimiento" placeholder="Ej: llevada a Liga Solymar el lunes…">
+        </div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-camara-posesion')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCamaraPosesion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: TRAZABILIDAD CÁMARA ══ -->
+<div class="overlay" id="m-add-camara">
+  <div class="modal" style="max-width:560px">
+    <div class="m-head">
+      <div class="m-title" id="m-camara-title">📷 Nueva cámara</div>
+      <div class="m-close" onclick="closeM('m-add-camara')">✕</div>
+    </div>
+    <input type="hidden" id="cam-edit-id">
+    <div class="m-body">
+      <div class="form-grid">
+        <!-- Cámara -->
+        <div class="fg">
+          <label class="flabel">Serie *</label>
+          <input class="finput" id="cam-serie" placeholder="78849, 275B3…" style="text-transform:uppercase">
+        </div>
+        <div class="fg">
+          <label class="flabel">Modelo cámara</label>
+          <select class="fselect" id="cam-modelo">
+            <option value="VEO 3">VEO 3</option>
+            <option value="VEO 2">VEO 2</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Estado</label>
+          <select class="fselect" id="cam-estado">
+            <option value="ASOCIADA">ASOCIADA</option>
+            <option value="SIN ASOCIAR">SIN ASOCIAR</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Club House</label>
+          <select class="fselect" id="cam-clubhouse">
+            <option value="">— Sin asignar —</option>
+            <option>URUGUAY 2</option>
+            <option>PERSONAL 2</option>
+            <option>BHV 1</option>
+            <option>BHV 3</option>
+            <option>BHV 9</option>
+            <option>TRANSMISION</option>
+            <option>BUHOVISION</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Ubicación cámara</label>
+          <input class="finput" id="cam-ubicacion" placeholder="CASA MAURO, LIGA KINGS, SOPORTE…" style="text-transform:uppercase">
+        </div>
+        <div class="fg">
+          <label class="flabel">Movimiento / Notas</label>
+          <input class="finput" id="cam-movimiento" placeholder="EN LIGA KINGS, VENDIDA, REVISAR…">
+        </div>
+        <!-- Separador trípode -->
+        <div class="fg full" style="border-top:1px solid var(--b-1);padding-top:12px;margin-top:4px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#3b82f6;text-transform:uppercase;margin-bottom:12px">🎬 Trípode asociado</div>
+        </div>
+        <div class="fg">
+          <label class="flabel">Modelo trípode</label>
+          <select class="fselect" id="cam-trip-modelo">
+            <option value="">— Sin trípode —</option>
+            <option value="C2">C2</option>
+            <option value="C3">C3</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Estado trípode</label>
+          <select class="fselect" id="cam-trip-estado">
+            <option value="">—</option>
+            <option value="SANO">SANO</option>
+            <option value="AVERIADO">AVERIADO</option>
+            <option value="REVISAR">REVISAR</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Ubicación trípode</label>
+          <input class="finput" id="cam-trip-ubicacion" placeholder="LIGA KINGS, CASA MAURO…" style="text-transform:uppercase">
+        </div>
+        <div class="fg">
+          <label class="flabel">Movimiento trípode</label>
+          <input class="finput" id="cam-trip-movimiento" placeholder="Notas de movimiento…">
+        </div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-add-camara')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCamara()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2396,7 +2573,7 @@ body {
 /* ──────────────────────────────────────────────
    DATA
    ────────────────────────────────────────────── */
-const LS = { lg: 'ps2_leagues', gm: 'ps2_games', ss: 'ps2_sessions', vn: 'ps2_venues', rn: 'ps2_rentals', rt: 'ps2_rental_teams' };
+const LS = { lg: 'ps2_leagues', gm: 'ps2_games', ss: 'ps2_sessions', vn: 'ps2_venues', rn: 'ps2_rentals', rt: 'ps2_rental_teams', cm: 'ps2_camaras_trazab' };
 function load(k)   { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } }
 function store(k,v){
   localStorage.setItem(k, JSON.stringify(v));
@@ -2409,6 +2586,7 @@ let sessions = load(LS.ss) || [];
 let rentals      = load(LS.rn) || [];
 let rentalTeams  = load(LS.rt) || [];
 let venues   = load(LS.vn) || [];
+let camaras  = load(LS.cm) || [];
 
 // Limpiar partidos con nombres garbled (de parseos malos de OCR/Veo anteriores)
 (function cleanGarbledGames() {
@@ -2725,6 +2903,7 @@ function startFirestoreSync() {
         mergeDefaultLeagues();
         deduplicateSessions();   // limpiar duplicados acumulados
         seedPDFAbril2026();
+        seedCompartidosPDF();
         repairOrphanedSessions();
       }
       let changed = false;
@@ -2749,6 +2928,7 @@ function startFirestoreSync() {
       }
       if (d[LS_BP])  { billingPeriods = d[LS_BP];  localStorage.setItem(LS_BP,  JSON.stringify(billingPeriods)); changed = true; }
       if (d[LS.rn])  { rentals = d[LS.rn]; localStorage.setItem(LS.rn, JSON.stringify(rentals)); changed = true; }
+      if (d[LS.cm])  { camaras = d[LS.cm]; localStorage.setItem(LS.cm, JSON.stringify(camaras)); changed = true; }
       if (changed && document.readyState !== 'loading') refresh();
     },
     err => {
@@ -2983,8 +3163,9 @@ const META = {
   graficos:   { t:'Gráficos',    s:'Exportar y generar gráficos automáticamente' },
   partidos:   { t:'Sesiones',    s:'Actividad por liga — previstos y cobrables' },
   ligas:      { t:'Ligas',       s:'Ligas y torneos' },
-  cobros:     { t:'Cobros',      s:'Trazabilidad de grabaciones y estado de cobro' },
-  miliga:     { t:'Mi Liga',     s:'Actividad semanal de tu liga' },
+  cobros:        { t:'Cobros',        s:'Trazabilidad de grabaciones y estado de cobro' },
+  miliga:        { t:'Mi Liga',       s:'Actividad semanal de tu liga' },
+  trazabilidad:  { t:'Trazabilidad',  s:'Inventario de cámaras Veo y trípodes' },
 };
 
 function toggleSidebar() {
@@ -3026,9 +3207,10 @@ function nav(name, el) {
   if (name === 'partidos')   renderTable();
   if (name === 'ligas')      renderLeagues();
   if (name === 'dashboard')  renderDash();
-  if (name === 'cobros')     renderCobros();
-  if (name === 'usuarios')   renderUsers();
-  if (name === 'miliga')     renderMiLiga();
+  if (name === 'cobros')        renderCobros();
+  if (name === 'usuarios')      renderUsers();
+  if (name === 'miliga')        renderMiLiga();
+  if (name === 'trazabilidad')  renderTrazabilidad();
 }
 
 /* ──────────────────────────────────────────────
@@ -4567,7 +4749,8 @@ function refresh() {
   if (activeId==='partidos')   renderTable();
   if (activeId==='ligas')      renderLeagues();
   if (activeId==='graficos')   renderGraficos();
-  if (activeId==='cobros')   renderCobros();
+  if (activeId==='cobros')       renderCobros();
+  if (activeId==='trazabilidad') renderTrazabilidad();
   // always keep badges fresh
   document.getElementById('badge').textContent      = games.filter(g=>g.sesion&&(g.date||'')>=today()).length;
   document.getElementById('badge-gfx').textContent  = games.filter(gameIsReady).length;
@@ -5211,6 +5394,128 @@ function seedPDFAbril2026() {
 }
 
 /* ──────────────────────────────────────────────
+   SEEDER PDF "PARTIDOS COMPARTIDOS" (billing)
+   Fuente: planilla compartidos/programados por liga y fecha
+   Actualiza planned_games (programados) y delivered_games (compartidos cobrables)
+   ────────────────────────────────────────────── */
+function seedCompartidosPDF() {
+  const lgMap = {};
+  leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
+  function lgId(name) {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return lgMap[n] || leagues.find(l => l.name.toLowerCase().includes(n) || n.includes(l.name.toLowerCase()))?.id || null;
+  }
+
+  // date: YYYY-MM-DD, lg: nombre liga, venue: hint de venue (opcional), prog: programados, comp: compartidos (null = sin dato)
+  const data = [
+    // ── MARZO semana 18-22 (page 1) ──
+    { date:'2026-03-18', lg:'Liga Kings',         prog:6,  comp:6  },
+    { date:'2026-03-18', lg:'Liga PRO',           prog:3,  comp:3  },
+    { date:'2026-03-18', lg:'Liga Pando',         prog:9,  comp:9  },
+    { date:'2026-03-19', lg:'Liga Pando',         prog:3,  comp:3  },
+    { date:'2026-03-20', lg:'Liga Pando',         prog:1,  comp:1  },
+    { date:'2026-03-22', lg:'Liga América',       prog:2,  comp:2  },
+    { date:'2026-03-22', lg:'Solymar',            prog:20, comp:18 },
+    { date:'2026-03-22', lg:'Liga Solo Fútbol',   prog:2,  comp:2  },
+    { date:'2026-03-22', lg:'Liga Celeste',       prog:11, comp:11 },
+    { date:'2026-03-22', lg:'Liga Kings',         prog:10, comp:10 },
+    { date:'2026-03-22', lg:'Liga PRO',           prog:10, comp:10 },
+    // ── MARZO semana 23-29 (page 45) ──
+    { date:'2026-03-11', lg:'Liga PRO',           prog:2,  comp:2  },
+    { date:'2026-03-23', lg:'Liga MVD',           prog:6,  comp:6  },
+    { date:'2026-03-23', lg:'Liga Solo Fútbol',   prog:1,  comp:1  },
+    { date:'2026-03-24', lg:'Liga MVD',           prog:6,  comp:6  },
+    { date:'2026-03-25', lg:'Liga Kings',         prog:4,  comp:4  },
+    { date:'2026-03-25', lg:'Liga Solo Fútbol',   prog:3,  comp:3  },
+    { date:'2026-03-26', lg:'Liga MVD',           prog:7,  comp:7  },
+    { date:'2026-03-29', lg:'Solymar',            prog:21, comp:15 },
+    // ── SEMANA 30 MARZO - 5 ABRIL (page 46) ──
+    { date:'2026-03-30', lg:'Liga Solo Fútbol',   prog:2,  comp:2  },
+    { date:'2026-04-01', lg:'Liga Kings',         prog:6,  comp:6  },
+    { date:'2026-04-05', lg:'Liga Kings',         prog:5,  comp:5  },
+    { date:'2026-04-05', lg:'Solymar',            prog:5,  comp:5  },
+    // ── SEMANA 1 ABRIL 6-12 (page 47) ──
+    { date:'2026-04-06', lg:'Liga Kings',         prog:3,  comp:3  },
+    { date:'2026-04-06', lg:'Liga MVD',           prog:6,  comp:6  },
+    { date:'2026-04-08', lg:'Liga MVD',           prog:4,  comp:4  },
+    { date:'2026-04-09', lg:'Liga MVD',           prog:7,  comp:7  },
+    { date:'2026-04-11', lg:'Liga PRO',           prog:11, comp:11 },
+    { date:'2026-04-11', lg:'Piria Seven League', prog:6,  comp:4  },
+    { date:'2026-04-12', lg:'Liga Kings',         prog:13, comp:12 },
+    { date:'2026-04-12', lg:'Solymar',            prog:20, comp:19 },
+    { date:'2026-04-12', lg:'Liga Solo Fútbol',   prog:3,  comp:3  },
+    // ── SEMANA 2 ABRIL 13-19 (page 48) ──
+    { date:'2026-04-13', lg:'Liga MVD',           prog:6,  comp:6  },
+    { date:'2026-04-13', lg:'Liga PRO',  venue:'Polideportivo', prog:22, comp:22 },
+    { date:'2026-04-13', lg:'Liga PRO',  venue:'Pro Futbol',    prog:8,  comp:null },
+    { date:'2026-04-13', lg:'Piria Seven League', prog:6,  comp:4  },
+    { date:'2026-04-15', lg:'Liga MVD',           prog:6,  comp:6  },
+    { date:'2026-04-15', lg:'Liga Kings',         prog:6,  comp:6  },
+    { date:'2026-04-15', lg:'Piria Seven League', prog:4,  comp:4  },
+    { date:'2026-04-15', lg:'Liga Solo Fútbol',   prog:4,  comp:4  },
+    { date:'2026-04-16', lg:'Liga MVD',           prog:5,  comp:5  },
+    { date:'2026-04-18', lg:'Liga PRO',           prog:27, comp:null },
+    { date:'2026-04-18', lg:'Piria Seven League', prog:6,  comp:null },
+    { date:'2026-04-18', lg:'Liga Celeste',       prog:9,  comp:null },
+    { date:'2026-04-19', lg:'Solymar',            prog:22, comp:null },
+    { date:'2026-04-19', lg:'Liga América',       prog:11, comp:null },
+    { date:'2026-04-19', lg:'Liga PRO', venue:'Polideportivo',  prog:16, comp:null },
+    { date:'2026-04-19', lg:'Liga Celeste',       prog:3,  comp:null },
+    { date:'2026-04-19', lg:'Liga Solo Fútbol',   prog:3,  comp:3  },
+  ];
+
+  let updated = 0, created = 0;
+  data.forEach(t => {
+    const lid = lgId(t.lg);
+    if (!lid) { console.warn('[seedCompartidos] liga no encontrada:', t.lg); return; }
+
+    // Buscar sesión: primero con venue hint, luego solo liga+fecha
+    const all = sessions.filter(s => s.liga === lid && s.date === t.date);
+    let target = null;
+    if (t.venue && all.length > 1) {
+      target = all.find(s => s.venue && s.venue.toLowerCase().includes(t.venue.toLowerCase()));
+    }
+    if (!target) target = all[0] || null;
+
+    if (target) {
+      const idx = sessions.indexOf(target);
+      // planned_games: actualizar siempre desde PDF (dato de facturación)
+      if (t.prog != null && t.prog > 0) sessions[idx].planned_games = t.prog;
+      // delivered_games: solo si PDF tiene dato y el actual está vacío
+      if (t.comp != null && t.comp > 0 && !sessions[idx].delivered_games) {
+        sessions[idx].delivered_games = t.comp;
+      }
+      updated++;
+    } else {
+      // Crear sesión mínima con datos de facturación
+      sessions.push({
+        id: uid(),
+        date: t.date,
+        liga: lid,
+        liga_name: t.lg,
+        venue: t.venue || '',
+        courts: [], cameras: [],
+        placed_by: '', retrieved_by: '', downloaded_by: '',
+        start_time: '', end_time: '',
+        download_status: (t.comp != null && t.comp > 0) ? 'completa' : '',
+        planned_games: t.prog || null,
+        confirmed_games: 0,
+        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : 0,
+        notes: ''
+      });
+      created++;
+    }
+  });
+
+  if (updated > 0 || created > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    if (created > 0) toast(`📊 PDF Compartidos: ${created} sesiones nuevas`);
+  }
+}
+
+/* ──────────────────────────────────────────────
    SEEDER MARZO 2026 (del PDF)
    ────────────────────────────────────────────── */
 function seedMarch2026() {
@@ -5721,6 +6026,111 @@ async function lpImport() {
     document.getElementById('ocr-progress').style.display = 'none';
     toast('Error: ' + e.message, 'err');
   }
+}
+
+let _lpResultados = [];
+
+async function lpVerResultados() {
+  const torneoId = document.getElementById('lp-torneo').value;
+  if (!torneoId) { toast('Elegí un torneo primero', 'warn'); return; }
+
+  const panel = document.getElementById('lp-results-panel');
+  const list  = document.getElementById('lp-results-list');
+  const title = document.getElementById('lp-results-title');
+  panel.style.display = '';
+  list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t-3)">Cargando…</div>';
+
+  try {
+    const r = await fetch(`http://localhost:5000/api/ligapro/resultados?torneo_id=${torneoId}`);
+    const data = await r.json();
+    _lpResultados = (data.games || []).filter(g => g.has_result);
+
+    const torneo = document.getElementById('lp-torneo');
+    const torNombre = torneo.options[torneo.selectedIndex]?.text || '';
+    title.textContent = `${torNombre} · ${_lpResultados.length} resultados`;
+    if (data.logos_downloaded > 0) toast(`${data.logos_downloaded} logos descargados automáticamente`, 'ok');
+
+    if (!_lpResultados.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t-3)">Sin resultados aún</div>';
+      return;
+    }
+
+    // Group by date
+    const byDate = {};
+    _lpResultados.forEach(g => {
+      if (!byDate[g.date]) byDate[g.date] = [];
+      byDate[g.date].push(g);
+    });
+
+    list.innerHTML = Object.entries(byDate).sort(([a],[b]) => {
+      // Sort dates dd/mm/yyyy descending
+      const p = s => s.split('/').reverse().join('');
+      return p(b).localeCompare(p(a));
+    }).map(([date, gs]) => `
+      <div style="font-size:10px;color:var(--t-3);font-weight:700;padding:4px 0 2px">${date}</div>
+      ${gs.map(g => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-2);border-radius:var(--r-sm);border:1px solid var(--b-1)">
+          <img src="${g.home_logo}" onerror="this.style.display='none'" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
+          <span style="flex:1;font-size:12px;font-weight:600;color:var(--t-0);text-align:right">${g.home_display||g.home}</span>
+          <span style="font-size:14px;font-weight:800;color:var(--accent);min-width:40px;text-align:center">${g.home_score}-${g.away_score}</span>
+          <span style="flex:1;font-size:12px;font-weight:600;color:var(--t-0)">${g.away_display||g.away}</span>
+          <img src="${g.away_logo}" onerror="this.style.display='none'" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
+          <button onclick="lpGenerarUno(${JSON.stringify(g).replace(/"/g,'&quot;')})" style="background:none;border:1px solid var(--b-2);border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer;color:var(--t-1);flex-shrink:0" title="Generar gráfico">🖼</button>
+        </div>
+      `).join('')}
+    `).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="color:var(--red);padding:12px">Error: ${e.message}</div>`;
+  }
+}
+
+async function lpGenerarUno(g) {
+  if (!serverOnline) { toast('Servidor offline', 'err'); return; }
+  const home = g.home_display || g.home;
+  const away = g.away_display || g.away;
+  try {
+    const resp = await fetch('http://localhost:5000/api/generate-graphic', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ league: 'Liga PRO', home_team: g.home, away_team: g.away,
+                             home_score: g.home_score, away_score: g.away_score })
+    });
+    if (!resp.ok) { toast('Error generando gráfico', 'err'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${home} VS ${away} Liga PRO.png`;
+    a.click(); URL.revokeObjectURL(url);
+    toast(`✅ ${home} VS ${away}`, 'ok');
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function lpGenerarTodos() {
+  if (!serverOnline) { toast('Servidor offline', 'err'); return; }
+  if (!_lpResultados.length) { toast('Sin resultados cargados', 'warn'); return; }
+
+  const btn = document.getElementById('lp-generar-btn');
+  btn.disabled = true; btn.textContent = '⏳ Generando…';
+
+  try {
+    const torneo = document.getElementById('lp-torneo');
+    const torNombre = torneo.options[torneo.selectedIndex]?.text || 'Liga PRO';
+    const games = _lpResultados.map(g => ({
+      home: g.home, away: g.away,
+      home_score: g.home_score, away_score: g.away_score
+    }));
+    const resp = await fetch('http://localhost:5000/api/generate-batch', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ league: 'Liga PRO', games })
+    });
+    if (!resp.ok) { toast('Error en batch', 'err'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Liga PRO - ${torNombre}.zip`;
+    a.click(); URL.revokeObjectURL(url);
+    toast(`✅ ${games.length} gráficos generados`, 'ok');
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = '⚡ Generar Gráficos'; }
 }
 
 async function runOCR(input) {
@@ -7204,6 +7614,283 @@ function mobSheetConfirmEntre() {
 function closeMobSheet() {
   document.getElementById('mob-sheet-overlay')?.remove();
   document.getElementById('mob-sheet')?.remove();
+}
+
+/* ══════════════════════════════════════════════
+   TRAZABILIDAD DE CÁMARAS
+   ══════════════════════════════════════════════ */
+
+const DEFAULT_CAMARAS = [
+  { serie:'78849', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'ALQUILER MENSUAL', movimiento:'', trip_modelo:'',   trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'50901', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'VENDIDA',          movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'CASA MATEO',    trip_mov:'' },
+  { serie:'60131', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'LIGA KINGS',       movimiento:'EN LIGA KINGS', trip_modelo:'C2', trip_estado:'SANO', trip_ubicacion:'CASA MAURO', trip_mov:'' },
+  { serie:'61167', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'CASA MAURO',    trip_mov:'' },
+  { serie:'275B3', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'C2',  trip_estado:'SANO', trip_ubicacion:'CASA MAURO',    trip_mov:'' },
+  { serie:'7082',  modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'C2',  trip_estado:'SANO', trip_ubicacion:'CASA MAURO',    trip_mov:'' },
+  { serie:'49133', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'CASA MAURO',    trip_mov:'' },
+  { serie:'52861', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'LIGA KINGS',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA KINGS',    trip_mov:'' },
+  { serie:'64670', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'LIGA PANDO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA PANDO',    trip_mov:'' },
+  { serie:'60139', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'LIGA PANDO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA PANDO',    trip_mov:'' },
+  { serie:'25202', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'SOPORTE',          movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA PANDO',    trip_mov:'' },
+  { serie:'10926', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MATEO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA SOLO FUTBOL', trip_mov:'' },
+  { serie:'50934', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'LIGA SOLYMAR',     movimiento:'', trip_modelo:'C2',  trip_estado:'SANO', trip_ubicacion:'LOMAS 3',       trip_mov:'' },
+  { serie:'60648', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'LIGA SOLYMAR',     movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'ZONA LAB',      trip_mov:'' },
+  { serie:'12766', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'LIGA SOLYMAR',     movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'ZONA LAB',      trip_mov:'' },
+  { serie:'28402', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'BHV 1',      ubicacion:'LIGA URUGUAY',     movimiento:'REVISAR', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'LA CANTERA', trip_mov:'' },
+  { serie:'50906', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'MUFP',             movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'MUFP',          trip_mov:'' },
+  { serie:'77698', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'BELLA ITALIA',     movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'ZONA LAB',      trip_mov:'' },
+  { serie:'49056', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 9',      ubicacion:'CASA MATEO',       movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'59249', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'PIRIAPOLIS',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'PIRIAPOLIS',    trip_mov:'' },
+  { serie:'27C68', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'PERSONAL 2', ubicacion:'SOPORTE',          movimiento:'SOPORTE DINAMARCA', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'10982', modelo:'VEO 3', estado:'SIN ASOCIAR', clubhouse:'',        ubicacion:'SOPORTE',          movimiento:'AVERIADA', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'285CE', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MATEO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA KINGS',    trip_mov:'' },
+  { serie:'5007',  modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'SOPORTE',          movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'48523', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'Reparada cambio conector 20-3-26', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'LIGA KINGS', trip_mov:'' },
+  { serie:'60636', modelo:'VEO 3', estado:'SIN ASOCIAR', clubhouse:'',        ubicacion:'SOPORTE',          movimiento:'SOPORTE DINAMARCA', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'73967', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'2588E', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'81597', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'81572', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'ZONA LAB', trip_mov:'' },
+  { serie:'81541', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'81561', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BUHOVISION', ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+];
+
+function seedDefaultCamaras() {
+  if (camaras.length) return;
+  camaras = DEFAULT_CAMARAS.map(c => ({ id: uid(), ...c }));
+  store(LS.cm, camaras);
+}
+
+function ubicColor(ub) {
+  if (!ub) return 'var(--t-2)';
+  const u = ub.toUpperCase();
+  if (u.includes('LIGA') || u.includes('MUFP') || u.includes('PIRIAPOLIS') || u.includes('SOLYMAR') || u.includes('LOMAS') || u.includes('CANTERA') || u.includes('BELLA') || u.includes('FUTBOL')) return '#2cb960';
+  if (u.includes('CASA') || u.includes('ZONA') || u.includes('ALQUILER')) return '#f6a119';
+  if (u.includes('SOPORTE') || u.includes('VENDIDA') || u.includes('AVERIADA') || u.includes('REVISAR') || u.includes('DINAMARCA')) return '#ef4444';
+  return 'var(--t-1)';
+}
+
+function renderTrazabilidad() {
+  seedDefaultCamaras();
+  const q    = (document.getElementById('traz-search')?.value || '').toLowerCase();
+  const chF  = (document.getElementById('traz-filter-clubhouse')?.value || '').toUpperCase();
+
+  let filtered = camaras.filter(c => {
+    const text = `${c.serie} ${c.clubhouse} ${c.ubicacion} ${c.movimiento} ${c.trip_ubicacion}`.toLowerCase();
+    if (q && !text.includes(q)) return false;
+    if (chF && (c.clubhouse || '').toUpperCase() !== chF) return false;
+    return true;
+  });
+
+  // Stats
+  const statsEl = document.getElementById('traz-stats');
+  if (statsEl) {
+    const total   = camaras.length;
+    const asoc    = camaras.filter(c => c.estado === 'ASOCIADA').length;
+    const sinAsoc = camaras.filter(c => c.estado === 'SIN ASOCIAR').length;
+    const ligaCount = camaras.filter(c => {
+      const u = (c.ubicacion||'').toUpperCase();
+      return u.includes('LIGA') || u.includes('MUFP') || u.includes('PIRIAPOLIS') || u.includes('SOLYMAR');
+    }).length;
+    statsEl.innerHTML = [
+      { label:'Total cámaras', val: total, color:'#f6a119' },
+      { label:'Asociadas',     val: asoc,  color:'#2cb960' },
+      { label:'Sin asociar',   val: sinAsoc, color:'#ef4444' },
+      { label:'En liga',       val: ligaCount, color:'#3b82f6' },
+    ].map(s => `
+      <div style="background:var(--bg-2);border:1px solid var(--b-1);border-radius:var(--r-sm);padding:10px 18px;display:flex;flex-direction:column;gap:2px;min-width:110px">
+        <div style="font-size:20px;font-weight:800;color:${s.color}">${s.val}</div>
+        <div style="font-size:11px;color:var(--t-2);font-weight:600">${s.label}</div>
+      </div>`).join('');
+  }
+
+  const grid  = document.getElementById('traz-grid');
+  const empty = document.getElementById('traz-empty');
+  if (!grid) return;
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(c => {
+    const estadoBadge = c.estado === 'ASOCIADA'
+      ? `<span style="background:rgba(44,185,96,.15);color:#2cb960;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${c.estado}</span>`
+      : `<span style="background:rgba(239,68,68,.15);color:#ef4444;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${c.estado}</span>`;
+
+    const modeloBadge = `<span style="background:var(--bg-3);color:var(--orange);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;border:1px solid var(--orange-b)">${c.modelo||'—'}</span>`;
+
+    const tripModeloBadge = c.trip_modelo
+      ? `<span style="background:rgba(59,130,246,.12);color:#3b82f6;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${c.trip_modelo}</span>`
+      : '';
+
+    const tripEstadoBadge = c.trip_estado
+      ? `<span style="color:${c.trip_estado==='SANO'?'#2cb960':'#ef4444'};font-size:11px;font-weight:700">${c.trip_estado}</span>`
+      : '';
+
+    const dt = c.updated_at ? new Date(c.updated_at) : null;
+    const updatedStr = c.updated_by
+      ? `<div style="font-size:10px;color:var(--t-3);margin-top:8px">✏️ ${c.updated_by}${dt ? ' · '+dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear() : ''}</div>`
+      : '';
+
+    const actionBtn = currentRole === 'admin'
+      ? `<div style="display:flex;gap:6px">
+           <button onclick="openAddCamaraModal('${c.id}')" style="flex:1;padding:6px 0;border-radius:6px;border:1px solid var(--b-2);background:var(--bg-3);color:var(--t-1);font-size:11px;cursor:pointer;font-weight:600">Editar</button>
+           <button onclick="deleteCamara('${c.id}')" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+         </div>`
+      : `<button onclick="openCamaraPosesion('${c.id}')" style="width:100%;padding:6px 0;border-radius:6px;border:1px solid var(--orange-b);background:var(--orange-g);color:var(--orange);font-size:11px;cursor:pointer;font-weight:600">📍 Actualizar posesión</button>`;
+
+    const noTrip = !c.trip_modelo && !c.trip_estado && !c.trip_ubicacion;
+
+    return `<div style="background:var(--bg-2);border:1px solid var(--b-1);border-radius:var(--r-md);overflow:hidden;display:flex;flex-direction:column">
+
+      <!-- CÁMARA -->
+      <div style="padding:14px 16px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:10px;font-weight:700;color:var(--t-3);letter-spacing:1px">📷 CAM</span>
+            <span style="font-family:monospace;font-size:15px;font-weight:800;color:var(--t-0)">${c.serie}</span>
+          </div>
+          <div style="display:flex;gap:5px;align-items:center">
+            ${modeloBadge}
+            ${estadoBadge}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+          <div>
+            <div style="font-size:9px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Club House</div>
+            <div style="font-size:12px;color:var(--t-1);font-weight:600">${c.clubhouse||'—'}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Ubicación</div>
+            <div style="font-size:12px;font-weight:700;color:${ubicColor(c.ubicacion)}">${c.ubicacion||'—'}</div>
+          </div>
+          ${c.movimiento ? `<div style="grid-column:1/-1">
+            <div style="font-size:9px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Movimiento</div>
+            <div style="font-size:11.5px;color:var(--t-2)">${c.movimiento}</div>
+          </div>` : ''}
+        </div>
+        ${updatedStr}
+      </div>
+
+      <!-- TRÍPODE -->
+      <div style="border-top:1px solid var(--b-1);padding:10px 16px 12px;background:var(--bg-3);flex:1">
+        <div style="font-size:9px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🎬 Trípode</div>
+        ${noTrip
+          ? `<div style="font-size:11px;color:var(--t-3)">Sin trípode asignado</div>`
+          : `<div style="display:grid;grid-template-columns:auto auto 1fr;gap:6px 10px;align-items:start">
+              <div>
+                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Modelo</div>
+                <div>${tripModeloBadge||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Estado</div>
+                <div>${tripEstadoBadge||'<span style="color:var(--t-3)">—</span>'}</div>
+              </div>
+              <div>
+                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Ubicación</div>
+                <div style="font-size:11.5px;font-weight:600;color:${ubicColor(c.trip_ubicacion)}">${c.trip_ubicacion||'—'}</div>
+              </div>
+              ${c.trip_mov ? `<div style="grid-column:1/-1;font-size:11px;color:var(--t-2)">${c.trip_mov}</div>` : ''}
+            </div>`
+        }
+      </div>
+
+      <!-- ACCIÓN -->
+      <div style="padding:10px 12px;border-top:1px solid var(--b-0)">
+        ${actionBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddCamaraModal(id) {
+  document.getElementById('cam-edit-id').value = id || '';
+  document.getElementById('m-camara-title').textContent = id ? '📷 Editar cámara' : '📷 Nueva cámara';
+  const c = id ? camaras.find(x => x.id === id) : null;
+  document.getElementById('cam-serie').value         = c?.serie         || '';
+  document.getElementById('cam-modelo').value        = c?.modelo        || 'VEO 3';
+  document.getElementById('cam-estado').value        = c?.estado        || 'ASOCIADA';
+  document.getElementById('cam-clubhouse').value     = c?.clubhouse     || '';
+  document.getElementById('cam-ubicacion').value     = c?.ubicacion     || '';
+  document.getElementById('cam-movimiento').value    = c?.movimiento    || '';
+  document.getElementById('cam-trip-modelo').value   = c?.trip_modelo   || '';
+  document.getElementById('cam-trip-estado').value   = c?.trip_estado   || '';
+  document.getElementById('cam-trip-ubicacion').value= c?.trip_ubicacion|| '';
+  document.getElementById('cam-trip-movimiento').value= c?.trip_mov     || '';
+  openM('m-add-camara');
+}
+
+function saveCamara() {
+  const serie = document.getElementById('cam-serie').value.trim().toUpperCase();
+  if (!serie) { alert('La serie es obligatoria'); return; }
+  const who = currentUser?.name || currentUser?.email || 'desconocido';
+  const fields = {
+    serie,
+    modelo:         document.getElementById('cam-modelo').value,
+    estado:         document.getElementById('cam-estado').value,
+    clubhouse:      document.getElementById('cam-clubhouse').value,
+    ubicacion:      document.getElementById('cam-ubicacion').value.trim().toUpperCase(),
+    movimiento:     document.getElementById('cam-movimiento').value.trim(),
+    trip_modelo:    document.getElementById('cam-trip-modelo').value,
+    trip_estado:    document.getElementById('cam-trip-estado').value,
+    trip_ubicacion: document.getElementById('cam-trip-ubicacion').value.trim().toUpperCase(),
+    trip_mov:       document.getElementById('cam-trip-movimiento').value.trim(),
+    updated_by:     who,
+    updated_at:     new Date().toISOString(),
+  };
+  const editId = document.getElementById('cam-edit-id').value;
+  if (editId) {
+    const idx = camaras.findIndex(c => c.id === editId);
+    if (idx >= 0) Object.assign(camaras[idx], fields);
+  } else {
+    camaras.push({ id: uid(), created_by: who, created_at: new Date().toISOString(), ...fields });
+  }
+  store(LS.cm, camaras);
+  closeM('m-add-camara');
+  renderTrazabilidad();
+  toast('📷 Cámara guardada');
+}
+
+function deleteCamara(id) {
+  if (!confirm('¿Eliminar esta cámara del inventario?')) return;
+  camaras = camaras.filter(c => c.id !== id);
+  store(LS.cm, camaras);
+  renderTrazabilidad();
+  toast('Cámara eliminada');
+}
+
+function openCamaraPosesion(id) {
+  const c = camaras.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('pos-cam-id').value = id;
+  document.getElementById('pos-cam-info').innerHTML =
+    `<span style="font-family:monospace;font-weight:800;color:var(--orange)">${c.serie}</span>` +
+    ` · ${c.modelo}` +
+    (c.clubhouse ? ` · <span style="color:var(--t-1)">${c.clubhouse}</span>` : '') +
+    (c.ubicacion ? ` · <span style="color:#2cb960">${c.ubicacion}</span>` : '');
+  document.getElementById('pos-clubhouse').value  = c.clubhouse  || '';
+  document.getElementById('pos-ubicacion').value  = c.ubicacion  || '';
+  document.getElementById('pos-movimiento').value = '';
+  openM('m-camara-posesion');
+}
+
+function saveCamaraPosesion() {
+  const id  = document.getElementById('pos-cam-id').value;
+  const idx = camaras.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  const who = currentUser?.name || currentUser?.email || 'desconocido';
+  camaras[idx].clubhouse   = document.getElementById('pos-clubhouse').value;
+  camaras[idx].ubicacion   = document.getElementById('pos-ubicacion').value.trim().toUpperCase();
+  camaras[idx].movimiento  = document.getElementById('pos-movimiento').value.trim() || camaras[idx].movimiento;
+  camaras[idx].updated_by  = who;
+  camaras[idx].updated_at  = new Date().toISOString();
+  store(LS.cm, camaras);
+  closeM('m-camara-posesion');
+  renderTrazabilidad();
+  toast(`📍 Posesión actualizada por ${who}`);
 }
 </script>
 
