@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scoreboard Generator - Buho Vision</title>
+    <title>Scoreboard Nexo - Buho Vision</title>
     <style>
         * {
             margin: 0;
@@ -53,91 +53,26 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.25);
         }
 
-        /* ========== CONTENT CONTAINER ========== */
-        .content-container {
-            position: absolute;
-            top: 10px;
-            left: 30px;
-            right: 30px;
-            height: 120px;
-            z-index: 20;
-        }
-
-        /* ========== LEFT TEAM SECTION ========== */
-        .left-team {
-            position: absolute;
-            left: 65px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 20;
-            overflow: hidden;
-        }
-
-        .left-team .team-name {
-            font-size: 42px;
-            font-weight: 900;
-            color: #000000;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-            line-height: 1;
-            max-width: 100%;
-            text-align: center;
-            word-spacing: 9999px;
-        }
-
-        /* ========== RIGHT TEAM SECTION ========== */
-        .right-team {
-            position: absolute;
-            right: 65px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 20;
-            overflow: hidden;
-        }
-
-
-        .right-team .team-name {
-            font-size: 42px;
-            font-weight: 900;
-            color: #000000;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-            line-height: 1;
-            max-width: 100%;
-            text-align: center;
-            word-spacing: 9999px;
-        }
-
-        /* ========== TEAM LOGOS IN BLUE WEDGES ========== */
+        /* ========== TEAM LOGOS - Large, filling the sides ========== */
         .team-logo {
             position: absolute;
-            width: 110px;
-            height: 110px;
+            top: 10px;
+            height: 120px;
             object-fit: contain;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
             z-index: 15;
         }
 
         .team-logo.home {
-            left: 50%;
-            top: 50%;
-            transform: translate(-348px, -50%);
+            left: 60px;
+            width: 640px;
+            object-position: left center;
         }
 
         .team-logo.away {
-            left: 50%;
-            top: 50%;
-            transform: translate(238px, -50%);
+            right: 60px;
+            width: 640px;
+            object-position: right center;
         }
 
         /* ========== CENTER SECTION ========== */
@@ -150,28 +85,6 @@
             align-items: center;
             gap: 0;
             z-index: 10;
-        }
-
-        /* Blue angular sections */
-        .blue-wedge {
-            width: 180px;
-            height: 120px;
-            background: linear-gradient(180deg, #0a4560 0%, #083650 100%);
-            border-top: 2px solid #a0a0a0;
-            border-bottom: 2px solid #a0a0a0;
-            position: relative;
-        }
-
-        .blue-wedge.left {
-            clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
-            border-left: 2px solid #a0a0a0;
-            margin-right: -5px;
-        }
-
-        .blue-wedge.right {
-            clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
-            border-right: 2px solid #a0a0a0;
-            margin-left: -5px;
         }
 
         /* Score boxes */
@@ -190,13 +103,13 @@
         .score-box.left {
             clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
             margin-right: -8px;
-            z-index: 13;
+            z-index: 11;
         }
 
         .score-box.right {
             clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
             margin-left: -8px;
-            z-index: 13;
+            z-index: 11;
         }
 
         .score {
@@ -210,7 +123,6 @@
             line-height: 1;
         }
 
-        /* Smaller score for penalty shootouts */
         .score.penalty {
             font-size: 45px;
             letter-spacing: -1px;
@@ -218,35 +130,33 @@
 
         /* Diamond with league logo */
         .diamond {
-            width: 170px;
-            height: 170px;
+            width: 160px;
+            height: 160px;
             background: linear-gradient(135deg, #0d4a6e 0%, #1a5a7e 50%, #0d4a6e 100%);
             transform: rotate(45deg);
             border: 2px solid #a0a0a0;
             position: relative;
             box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-            z-index: 11;
+            z-index: 12;
         }
 
-        /* White/gray accent inside diamond */
         .diamond-inner {
             position: absolute;
-            width: 135px;
-            height: 135px;
+            width: 125px;
+            height: 125px;
             background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #e8e8e8 100%);
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
         }
 
-        /* League logo container */
         .league-logo-wrapper {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 160px;
-            height: 160px;
+            width: 150px;
+            height: 150px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -270,88 +180,36 @@
         <!-- Main gray bar -->
         <div class="main-bar"></div>
 
-        <!-- Content container -->
-        <div class="content-container">
-            <!-- Left team name -->
-            <div class="left-team">
-                <div class="team-name" id="home-name">LA BANDEJA</div>
-            </div>
-
-            <!-- Right team name -->
-            <div class="right-team">
-                <div class="team-name" id="away-name">KOREA</div>
-            </div>
-        </div>
-
-        <!-- Team logos (positioned in blue wedges) -->
+        <!-- Home logo -->
         <img class="team-logo home" id="home-logo" src="" alt="" style="display:none;">
+
+        <!-- Away logo -->
         <img class="team-logo away" id="away-logo" src="" alt="" style="display:none;">
 
         <!-- Center group with scores and logo -->
         <div class="center-group">
-            <!-- Left blue wedge -->
-            <div class="blue-wedge left"></div>
-
             <!-- Left score -->
             <div class="score-box left">
-                <div class="score" id="home-score">5</div>
+                <div class="score" id="home-score">2</div>
             </div>
 
             <!-- Diamond with league logo -->
             <div class="diamond">
                 <div class="diamond-inner"></div>
                 <div class="league-logo-wrapper">
-                    <img class="league-logo" id="league-logo" src="" alt="Liga">
+                    <img class="league-logo" id="league-logo" src="" alt="">
                 </div>
             </div>
 
             <!-- Right score -->
             <div class="score-box right">
-                <div class="score" id="away-score">5</div>
+                <div class="score" id="away-score">1</div>
             </div>
-
-            <!-- Right blue wedge -->
-            <div class="blue-wedge right"></div>
         </div>
     </div>
 
     <script>
-        function adjustFontSize(element, text, maxWidth) {
-            // Starting font size
-            let fontSize = 42;
-            const minFontSize = 20;
-
-            element.textContent = text;
-            element.style.fontSize = fontSize + 'px';
-            element.style.whiteSpace = 'normal';
-            element.style.wordSpacing = '9999px'; // Force word wrapping
-
-            // Reduce font size until text fits
-            while (element.scrollWidth > maxWidth && fontSize > minFontSize) {
-                fontSize -= 1;
-                element.style.fontSize = fontSize + 'px';
-            }
-
-            // If still too long after minimum size, allow better wrapping
-            if (element.scrollWidth > maxWidth) {
-                element.style.wordSpacing = '0px';
-                element.style.lineHeight = '0.85';
-                // Try again with tighter spacing
-                while (element.scrollWidth > maxWidth && fontSize > 18) {
-                    fontSize -= 1;
-                    element.style.fontSize = fontSize + 'px';
-                }
-            }
-        }
-
         function updateScoreboard(data) {
-            // Update team names with adaptive sizing
-            const homeNameEl = document.getElementById('home-name');
-            const awayNameEl = document.getElementById('away-name');
-
-            adjustFontSize(homeNameEl, data.homeTeam, 240);
-            adjustFontSize(awayNameEl, data.awayTeam, 240);
-
             // Update scores
             const homeScoreEl = document.getElementById('home-score');
             const awayScoreEl = document.getElementById('away-score');
@@ -359,7 +217,6 @@
             homeScoreEl.textContent = data.homeScore;
             awayScoreEl.textContent = data.awayScore;
 
-            // Check if penalty shootout (contains parentheses) and apply smaller font
             if (data.homeScore.includes('(') || data.awayScore.includes('(')) {
                 homeScoreEl.classList.add('penalty');
                 awayScoreEl.classList.add('penalty');
@@ -368,14 +225,14 @@
                 awayScoreEl.classList.remove('penalty');
             }
 
-            // Update home team logo
+            // Update home logo
             if (data.homeLogo) {
                 const homeLogo = document.getElementById('home-logo');
                 homeLogo.src = data.homeLogo;
                 homeLogo.style.display = 'block';
             }
 
-            // Update away team logo
+            // Update away logo
             if (data.awayLogo) {
                 const awayLogo = document.getElementById('away-logo');
                 awayLogo.src = data.awayLogo;
@@ -388,12 +245,11 @@
             }
         }
 
-        // Test data
         const testData = {
-            homeTeam: 'LA BANDEJA',
-            awayTeam: 'KOREA',
-            homeScore: '5',
-            awayScore: '5',
+            homeTeam: '',
+            awayTeam: '',
+            homeScore: '2',
+            awayScore: '1',
             homeLogo: '',
             awayLogo: '',
             leagueLogo: ''
