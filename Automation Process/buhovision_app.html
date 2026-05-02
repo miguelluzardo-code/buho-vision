@@ -576,7 +576,7 @@ body {
   transition: background .12s;
   position: relative;
 }
-.cal-cell:hover { background: var(--b-0); }
+.cal-cell:not(.dim):hover { background: var(--b-0); }
 .cal-cell:nth-child(7n) { border-right: none; }
 .cal-cell.dim { opacity: .3; }
 
@@ -1728,6 +1728,81 @@ body {
          ════════════════ -->
     <div class="view" id="v-graficos">
 
+      <!-- ══ GENERADOR DIRECTO ══ -->
+      <div class="card mb6" id="gendir-card" style="border:2px solid rgba(168,85,247,.6);background:rgba(168,85,247,.04)">
+        <div class="card-head" style="cursor:pointer" onclick="toggleCard('gendir-body','gendir-chev')">
+          <div class="card-title" style="color:#a855f7">⚡ Generador Directo de Marcadores</div>
+          <span id="gendir-chev" style="font-size:18px;color:#a855f7;transition:transform .2s">▾</span>
+        </div>
+        <div id="gendir-body" class="card-body" style="display:none;padding:16px 20px;flex-direction:column;gap:14px">
+
+          <!-- Liga + deporte -->
+          <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
+            <div class="fg">
+              <label class="flabel">Liga</label>
+              <select class="fselect" id="gd-league" onchange="gdOnLeagueChange()">
+                <option value="">Seleccioná una liga…</option>
+              </select>
+            </div>
+            <span id="gd-sport-badge" style="font-size:12px;color:var(--t-2);padding:4px 10px;background:var(--bg-3);border-radius:100px;white-space:nowrap;margin-bottom:2px"></span>
+          </div>
+
+          <!-- Tabs modo -->
+          <div style="display:flex;gap:4px;background:var(--bg-3);border-radius:var(--r-sm);padding:3px;width:fit-content">
+            <button id="gd-tab-manual" onclick="gdSwitchMode('manual')" style="padding:5px 14px;border:none;border-radius:calc(var(--r-sm) - 2px);cursor:pointer;font-size:12px;font-weight:600;background:#a855f7;color:#fff;transition:.15s">✏️ Escribir</button>
+            <button id="gd-tab-shot" onclick="gdSwitchMode('shot')" style="padding:5px 14px;border:none;border-radius:calc(var(--r-sm) - 2px);cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:var(--t-2);transition:.15s">📸 Captura</button>
+          </div>
+
+          <!-- Modo manual -->
+          <div id="gd-mode-manual">
+            <div id="gd-games"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+              <button class="btn btn-ghost btn-sm" onclick="gdAddGame()">+ Partido</button>
+              <button class="btn btn-sm" style="background:#a855f7;color:#fff;font-weight:700" onclick="gdGenerate()">⚡ Generar</button>
+            </div>
+          </div>
+
+          <!-- Modo captura -->
+          <div id="gd-mode-shot" style="display:none;flex-direction:column;gap:10px">
+            <!-- Dropzone -->
+            <div id="gd-dropzone" ondragover="event.preventDefault();this.style.borderColor='#a855f7'" ondragleave="this.style.borderColor=''" ondrop="gdHandleDrop(event)"
+              style="border:2px dashed var(--b-2);border-radius:var(--r-sm);padding:28px;text-align:center;cursor:pointer;transition:.15s"
+              onclick="document.getElementById('gd-file-input').click()">
+              <div style="font-size:28px;margin-bottom:8px">📷</div>
+              <div style="font-size:13px;font-weight:600;color:var(--t-0)">Arrastrá o hacé click para subir la captura</div>
+              <div style="font-size:11px;color:var(--t-2);margin-top:4px">Imagen con los resultados</div>
+              <input type="file" id="gd-file-input" accept="image/*" style="display:none" onchange="gdHandleFileSelect(event)">
+            </div>
+            <!-- Preview -->
+            <div id="gd-img-preview-wrap" style="display:none;flex-direction:column;gap:8px">
+              <img id="gd-img-preview" style="max-width:100%;max-height:260px;border-radius:var(--r-sm);object-fit:contain">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <button class="btn btn-primary btn-sm" id="gd-parse-btn" onclick="gdParseImage()">🔍 Detectar resultados</button>
+                <button class="btn btn-ghost btn-sm" onclick="gdClearImage()">✕ Limpiar</button>
+                <span id="gd-parse-loading" style="display:none;font-size:11px;color:var(--t-2)">⏳ Analizando…</span>
+              </div>
+            </div>
+            <!-- Detected games -->
+            <div id="gd-detected-wrap" style="display:none;flex-direction:column;gap:8px">
+              <div style="font-size:11px;font-weight:700;color:var(--t-2);text-transform:uppercase;letter-spacing:.8px">Resultados detectados — editá si es necesario</div>
+              <div id="gd-detected-list"></div>
+              <button class="btn btn-sm" style="background:#a855f7;color:#fff;font-weight:700;align-self:flex-start" onclick="gdGenerate()">⚡ Generar marcadores</button>
+            </div>
+          </div>
+
+          <!-- Panel de escudos faltantes -->
+          <div id="gd-missing" style="display:none;background:var(--bg-3);border:1px solid rgba(243,156,18,.4);border-radius:var(--r-sm);padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#f39c12;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">⚠️ Escudos faltantes — asigná el archivo</div>
+            <div id="gd-missing-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="gdSaveAliasesAndRegen()">💾 Guardar y regenerar</button>
+          </div>
+
+          <!-- Resultados -->
+          <div id="gd-results" style="display:flex;flex-direction:column;gap:10px"></div>
+
+        </div>
+      </div>
+
       <!-- ══ ESCANEAR RESULTADOS ══ -->
       <div class="card mb6" id="ocr-card" style="border:1px solid rgba(246,161,25,.2)">
         <div class="card-head" style="cursor:pointer" onclick="toggleOCRCard()">
@@ -2026,6 +2101,7 @@ body {
             <option>TRANSMISION</option>
             <option>BUHOVISION</option>
           </select>
+          <button class="btn btn-ghost btn-sm" onclick="importarCamarasVeo()" title="Importar inventario escaneado desde Veo.co">🔄 Importar Veo</button>
           <button class="btn btn-primary btn-sm" onclick="openAddCamaraModal(null)">+ Cámara</button>
         </div>
       </div>
@@ -2037,6 +2113,21 @@ body {
       <div id="traz-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px"></div>
       <div id="traz-empty" style="display:none;text-align:center;padding:48px 20px;color:var(--t-2);font-size:14px">
         Sin resultados
+      </div>
+
+      <!-- TRÍPODES -->
+      <div style="margin-top:32px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-size:16px;font-weight:800;color:var(--t-0)">🎬 Trípodes</div>
+            <div style="font-size:11px;color:var(--t-2);margin-top:2px">Por liga · complejo · alquiler</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="trip-total-badge" style="font-size:12px;font-weight:700;color:var(--orange);background:var(--orange-g);border:1px solid var(--orange-b);border-radius:20px;padding:4px 12px"></div>
+            <button class="btn btn-primary btn-sm" onclick="openTripodeModal(null)">+ Agregar</button>
+          </div>
+        </div>
+        <div id="trip-list"></div>
       </div>
     </div>
 
@@ -2234,6 +2325,37 @@ body {
     <div class="m-foot">
       <button class="btn btn-ghost" onclick="closeM('m-camara-posesion')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveCamaraPosesion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: TRÍPODE ══ -->
+<div class="overlay" id="m-tripode">
+  <div class="modal" style="max-width:420px">
+    <div class="m-head">
+      <div class="m-title">🎬 Trípode</div>
+      <div class="m-close" onclick="closeM('m-tripode')">✕</div>
+    </div>
+    <input type="hidden" id="trip-edit-id">
+    <div class="m-body">
+      <div class="form-grid">
+        <div class="fg full">
+          <label class="flabel">🏆 Liga</label>
+          <input class="finput" id="trip-liga" placeholder="Liga Kings, Liga MVD… (opcional)">
+        </div>
+        <div class="fg full">
+          <label class="flabel">🏟️ Complejo</label>
+          <input class="finput" id="trip-complejo" placeholder="Complejo Palermo, Cancha X… (opcional)">
+        </div>
+        <div class="fg full">
+          <label class="flabel">Cantidad *</label>
+          <input class="finput" id="trip-cantidad" type="number" min="1" value="1">
+        </div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-tripode')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTripode()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2573,7 +2695,7 @@ body {
 /* ──────────────────────────────────────────────
    DATA
    ────────────────────────────────────────────── */
-const LS = { lg: 'ps2_leagues', gm: 'ps2_games', ss: 'ps2_sessions', vn: 'ps2_venues', rn: 'ps2_rentals', rt: 'ps2_rental_teams', cm: 'ps2_camaras_trazab' };
+const LS = { lg: 'ps2_leagues', gm: 'ps2_games', ss: 'ps2_sessions', vn: 'ps2_venues', rn: 'ps2_rentals', rt: 'ps2_rental_teams', cm: 'ps2_camaras_trazab', tp: 'ps2_tripodes' };
 function load(k)   { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } }
 function store(k,v){
   localStorage.setItem(k, JSON.stringify(v));
@@ -2587,6 +2709,41 @@ let rentals      = load(LS.rn) || [];
 let rentalTeams  = load(LS.rt) || [];
 let venues   = load(LS.vn) || [];
 let camaras  = load(LS.cm) || [];
+let tripodes = load(LS.tp) || [];
+
+// Auto-deduplicar cámaras: si hay serial corto (78849) Y serial largo (vc3-78849),
+// quedarse solo con el largo y actualizar la serie del corto.
+(function deduplicateCamaras() {
+  const getNumeric = s => (s || '').replace(/^(vc\d+-|veocam\d+-)/i, '').toUpperCase();
+  const seen = new Map(); // numeric → index en camaras
+  const toRemove = new Set();
+  camaras.forEach((c, i) => {
+    const num = getNumeric(c.serie);
+    const isLong = /^(vc|veocam)/i.test(c.serie);
+    if (seen.has(num)) {
+      const prevIdx = seen.get(num);
+      const prev = camaras[prevIdx];
+      const prevLong = /^(vc|veocam)/i.test(prev.serie);
+      if (isLong && !prevLong) {
+        // Nuevo es largo, viejo es corto: mergear datos del viejo al nuevo y eliminar viejo
+        if (!c.trip_modelo && prev.trip_modelo) c.trip_modelo = prev.trip_modelo;
+        if (!c.trip_estado && prev.trip_estado) c.trip_estado = prev.trip_estado;
+        if (!c.trip_ubicacion && prev.trip_ubicacion) c.trip_ubicacion = prev.trip_ubicacion;
+        if (!c.trip_mov && prev.trip_mov) c.trip_mov = prev.trip_mov;
+        toRemove.add(prevIdx);
+        seen.set(num, i);
+      } else {
+        toRemove.add(i);
+      }
+    } else {
+      seen.set(num, i);
+    }
+  });
+  if (toRemove.size) {
+    camaras = camaras.filter((_, i) => !toRemove.has(i));
+    localStorage.setItem(LS.cm, JSON.stringify(camaras));
+  }
+})();
 
 // Limpiar partidos con nombres garbled (de parseos malos de OCR/Veo anteriores)
 (function cleanGarbledGames() {
@@ -2884,7 +3041,7 @@ function startFirestoreSync() {
         seedApril2026();
         return; // seeder escribe a Firebase → onSnapshot vuelve a disparar con datos nuevos
       }
-      if (!localStorage.getItem('ps2_seeded_logistica_abril18_24_v2')) {
+      if (!localStorage.getItem('ps2_seeded_logistica_abril18_24_v3')) {
         seedLogisticaAbril18_24();
       }
       // ── SYNC: leer datos de Firestore (fuente de verdad compartida) ──
@@ -2904,7 +3061,15 @@ function startFirestoreSync() {
         deduplicateSessions();   // limpiar duplicados acumulados
         seedPDFAbril2026();
         seedCompartidosPDF();
+        seedCompartidosSemana20_26Abr();
+        seedLigaPandoSemana20_26Abr();
+        seedComplejos();
         repairOrphanedSessions();
+        // Auto-importar cámaras desde Veo una sola vez para reemplazar las 70 viejas
+        if (!localStorage.getItem('ps2_veo_replace_v1')) {
+          localStorage.setItem('ps2_veo_replace_v1', '1');
+          setTimeout(() => importarCamarasVeo(), 1500);
+        }
       }
       let changed = false;
       if (d[LS.lg])  { leagues        = d[LS.lg];  localStorage.setItem(LS.lg,  JSON.stringify(leagues));        changed = true; }
@@ -2928,7 +3093,28 @@ function startFirestoreSync() {
       }
       if (d[LS_BP])  { billingPeriods = d[LS_BP];  localStorage.setItem(LS_BP,  JSON.stringify(billingPeriods)); changed = true; }
       if (d[LS.rn])  { rentals = d[LS.rn]; localStorage.setItem(LS.rn, JSON.stringify(rentals)); changed = true; }
-      if (d[LS.cm])  { camaras = d[LS.cm]; localStorage.setItem(LS.cm, JSON.stringify(camaras)); changed = true; }
+      if (d[LS.cm])  {
+        camaras = d[LS.cm];
+        // Deduplicar: eliminar seriales cortos si existe el ID completo (vc3-XXXXX)
+        const getNum = s => (s||'').replace(/^(vc\d+-|veocam\d+-)/i,'').toUpperCase();
+        const seen = new Map();
+        const remove = new Set();
+        camaras.forEach((c,i) => {
+          const num = getNum(c.serie), isLong = /^(vc|veocam)/i.test(c.serie);
+          if (seen.has(num)) {
+            const pi = seen.get(num), prev = camaras[pi], prevLong = /^(vc|veocam)/i.test(prev.serie);
+            if (isLong && !prevLong) { remove.add(pi); seen.set(num,i); }
+            else remove.add(i);
+          } else seen.set(num,i);
+        });
+        if (remove.size) {
+          camaras = camaras.filter((_,i)=>!remove.has(i));
+          db.collection('sessions_data').doc('main').set({[LS.cm]:camaras},{merge:true});
+        }
+        localStorage.setItem(LS.cm, JSON.stringify(camaras));
+        changed = true;
+      }
+      if (d[LS.tp])  { tripodes = d[LS.tp]; localStorage.setItem(LS.tp, JSON.stringify(tripodes)); changed = true; }
       if (changed && document.readyState !== 'loading') refresh();
     },
     err => {
@@ -3067,6 +3253,7 @@ function mergeDefaultLeagues() {
     { name:'Liga Uruguay',       sport:'Fútbol',   color:'#eab308', icon:'🇺🇾', desc:'La Cantera' },
     { name:'Liga Lokura',        sport:'Fútbol',   color:'#ef4444', icon:'🔥', desc:'' },
     { name:'Liga Femenina Basketball', sport:'Basketball', color:'#ec4899', icon:'🏀', desc:'Basketball femenino' },
+    { name:'Nexo Fútbol',             sport:'Fútbol',     color:'#0ea5e9', icon:'🔗', desc:'' },
   ];
   let added = 0;
   REQUIRED.forEach(def => {
@@ -3493,6 +3680,26 @@ function wkPrev()  { wkOffset--; renderWeek(); }
 function wkNext()  { wkOffset++; renderWeek(); }
 function wkToday() { wkOffset=0; renderWeek(); }
 
+function clearWeekDelivered() {
+  const days = getWeekDates().map(d => d.toISOString().split('T')[0]);
+  const wkSessions = sessions.filter(s => days.includes(s.date) && (s.delivered_games||0) > 0);
+  if (wkSessions.length === 0) { toast('Esta semana no tiene partidos entregados'); return; }
+  if (!confirm(`¿Limpiar "entregados" de ${wkSessions.length} sesión${wkSessions.length!==1?'es':''} de esta semana?\n\nEsto pone delivered_games = 0. Los datos de semanas anteriores no se tocan.`)) return;
+  wkSessions.forEach(s => {
+    const idx = sessions.indexOf(s);
+    sessions[idx].delivered_games = 0;
+    sessions[idx].delivered       = false;
+    sessions[idx].delivered_by    = '';
+    sessions[idx].delivered_at    = '';
+  });
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  renderWeek();
+  if (document.getElementById('prod-list')) renderKanban();
+  if (document.getElementById('cobros-content')) renderCobros();
+  toast(`🧹 ${wkSessions.length} sesión${wkSessions.length!==1?'es':''} limpiadas`);
+}
+
 /* ══════════════════════════════════════════════
    PLANILLA SEMANAL — modal de carga manual
    ══════════════════════════════════════════════ */
@@ -3726,6 +3933,8 @@ function renderWeek() {
 
   const wkSessions = sessions.filter(s => days.some(d => d.toISOString().split('T')[0] === s.date));
   document.getElementById('wk-sub').textContent = `${wkSessions.length} sesión${wkSessions.length!==1?'es':''} programada${wkSessions.length!==1?'s':''}`;
+  const clearBtn = document.getElementById('wk-clear-delivered-btn');
+  if (clearBtn) clearBtn.style.display = (currentRole === 'admin') ? '' : 'none';
 
   const statusColor = { pendiente:'#3b82f6', en_proceso:'#f6a119', completa:'#2cb960', '' : '#555' };
   const statusLabel = { pendiente:'Pendiente', en_proceso:'En proceso', completa:'Completa', '':'Sin estado' };
@@ -3804,13 +4013,23 @@ function renderWeek() {
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
           ${s.placed_by ? `<span style="font-size:10px;color:var(--t-3)" title="Coloca">▲ ${s.placed_by}</span>` : ''}
           ${s.retrieved_by ? `<span style="font-size:10px;color:var(--t-3)" title="Retira">↩ ${s.retrieved_by}</span>` : ''}
-          ${s.downloaded_by ? `<span style="font-size:10px;color:var(--t-3)" title="Descarga">▼ ${s.downloaded_by}</span>` : ''}
         </div>
         <div class="wc-status-row" onclick="event.stopPropagation()">
           <span style="font-size:10px;font-weight:700;color:${sc};background:${sc}22;padding:2px 6px;border-radius:4px">${sl}</span>
+          ${s.downloaded_by ? `<span style="font-size:10px;color:var(--t-3)" title="Responsable descarga">👤 ${s.downloaded_by}</span>` : ''}
           ${s.status_changed_by ? `<span style="font-size:9px;color:var(--t-3)" title="${fmtAt(s.status_changed_at)}">✓ ${s.status_changed_by}</span>` : ''}
           ${canGrab && !ds_is_completa ? `<button class="wc-quick-btn" onclick="quickStatus('${s.id}','completa',event)">→ Completa</button>` : ''}
           ${canGrab && ds_is_completa ? `<button class="wc-quick-btn active" onclick="quickStatus('${s.id}','pendiente',event)">↩ Revertir</button>` : ''}
+        </div>
+        <div class="wc-status-row" onclick="event.stopPropagation()" style="margin-top:3px">
+          ${(() => {
+            const ms = s.material_delivery_status || '';
+            const msColor = ms === 'completado' ? '#2cb960' : (ms === 'pendiente' ? '#f6a119' : '#555');
+            const msLabel = ms === 'completado' ? '✅ Entrega material' : (ms === 'pendiente' ? '⏳ Entrega pendiente' : '📦 Entrega material');
+            return `<span style="font-size:10px;font-weight:700;color:${msColor};background:${msColor}22;padding:2px 6px;border-radius:4px">${msLabel}</span>
+            ${canEntre && ms !== 'completado' ? `<button class="wc-quick-btn" onclick="quickMaterialStatus('${s.id}','completado',event)">→ Completado</button>` : ''}
+            ${canEntre && ms === 'completado' ? `<button class="wc-quick-btn active" onclick="quickMaterialStatus('${s.id}','pendiente',event)">↩ Pendiente</button>` : ''}`;
+          })()}
         </div>
         ${confirmBar}
       </div>`;
@@ -3869,15 +4088,14 @@ function calToday() { const n=new Date(); calY=n.getFullYear(); calM=n.getMonth(
 
 function renderCal() {
   document.getElementById('cal-label').textContent = `${MES[calM]} ${calY}`;
-  const first = new Date(calY,calM,1).getDay();
-  const dim   = new Date(calY,calM+1,0).getDate();
+  const first   = new Date(calY,calM,1).getDay();
+  const dim     = new Date(calY,calM+1,0).getDate();
   const dimPrev = new Date(calY,calM,0).getDate();
-  const t     = today();
-  const sc    = ['#555','#3b82f6','#a855f7','#f6a119','#2cb960'];
-  const cells = document.getElementById('cal-cells');
+  const t       = today();
+  const cells   = document.getElementById('cal-cells');
   cells.innerHTML = '';
 
-  // Semana empieza en Lunes: Sun=0→6 celdas vacías, Mon=1→0, Tue=2→1 ...
+  // Semana empieza en Lunes
   const padDays = (first + 6) % 7;
   let all = [];
   for(let i=padDays-1;i>=0;i--)  all.push({d:new Date(calY,calM-1,dimPrev-i).toISOString().split('T')[0],n:dimPrev-i,dim:true});
@@ -3885,27 +4103,25 @@ function renderCal() {
   let nx=1;
   while(all.length%7!==0) { all.push({d:new Date(calY,calM+1,nx).toISOString().split('T')[0],n:nx++,dim:true}); }
 
-  all.forEach(c=>{
-    const dg  = games.filter(g=>g.date===c.d);
-    const isT = c.d===t;
+  all.forEach(c => {
+    const daySessions = sessions.filter(s => s.date === c.d);
+    const isT = c.d === t;
     const div = document.createElement('div');
     div.className = `cal-cell${c.dim?' dim':''}${isT?' today':''}`;
+    div.style.cursor = 'default';
 
-    const dayRentals = rentals.filter(r => r.type === 'partido' && r.game_date === c.d);
-    let html = `<div class="day-n">${c.n}${dayRentals.length ? `<span style="font-size:9px;color:var(--orange);margin-left:3px" title="${dayRentals.map(r=>r.camera_serial+' · '+r.client_name).join(', ')}">📷${dayRentals.length}</span>` : ''}</div>`;
-    dg.slice(0,3).forEach(g=>{
-      const col = sc[g.stage];
-      const sel = selectedGames.has(g.id) ? ' selected' : '';
-      html += `<div class="cal-ev${sel}" data-gid="${g.id}" style="color:${col}"
-                onclick="event.stopPropagation();openDetail('${g.id}')"
-                title="${g.sesion ? (getLg(g.league)?.name||g.home) + ' · ' + (g.venue||g.away) : g.home + ' vs ' + g.away}">
-                ${g.sesion ? (getLg(g.league)?.name||g.home) : g.home + ' vs ' + g.away}
-                <span class="sel-chk-sm" onclick="toggleGameSelect('${g.id}',event)">${selectedGames.has(g.id)?'✓':''}</span>
-               </div>`;
+    let html = `<div class="day-n">${c.n}</div>`;
+
+    daySessions.slice(0, 4).forEach(s => {
+      const lg    = getLg(s.liga);
+      const color = lg?.color || '#555';
+      const name  = lg?.name  || s.liga_name || '—';
+      const n     = s.planned_games != null ? s.planned_games : '—';
+      html += `<div class="cal-ev" style="color:${color};cursor:default">${name} · ${n}p</div>`;
     });
-    if(dg.length>3) html += `<div class="cal-more">+${dg.length-3} más</div>`;
+    if (daySessions.length > 4) html += `<div class="cal-more">+${daySessions.length-4} más</div>`;
+
     div.innerHTML = html;
-    div.addEventListener('click',()=>{ document.getElementById('ag-date').value=c.d; openM('m-add-game'); });
     cells.appendChild(div);
   });
 }
@@ -4358,6 +4574,7 @@ function fmtMes(ym) {
 
 function getMeses() {
   const set = new Set();
+  sessions.forEach(s => { if (s.date) set.add(s.date.slice(0,7)); });
   games.forEach(g => { if (g.date) set.add(g.date.slice(0,7)); });
   return [...set].sort().reverse();
 }
@@ -4415,12 +4632,12 @@ function renderCobros() {
     meses.map(m=>`<option value="${m}">${fmtMes(m)}</option>`).join('');
   selMes.value = curMes || (meses.length ? meses[0] : '');
   const mes = selMes.value;
-  const allSessions = games.filter(g => g.sesion).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const sessions = allSessions.filter(g => !mes || (g.date||'').startsWith(mes));
+  const allSessions = [...sessions].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const filtSessions = allSessions.filter(g => !mes || (g.date||'').startsWith(mes));
   const el = document.getElementById('cobros-content');
   if (!el) return;
-  if (cobrosTab === 'mes')       renderCobrosMes(el, sessions, mes);
-  else if (cobrosTab==='semana') renderCobrosSemana(el, sessions, mes);
+  if (cobrosTab === 'mes')       renderCobrosMes(el, filtSessions, mes);
+  else if (cobrosTab==='semana') renderCobrosSemana(el, filtSessions, mes);
   else                           renderCobrosLiga(el, allSessions, mes);
   updateCobrosBadge();
 }
@@ -4428,15 +4645,18 @@ function renderCobros() {
 /* ── cobros helpers ── */
 function parseCamaras(notes) { return (notes||'').match(/Cámaras:\s*([^·\n]+)/i)?.[1]?.trim()||''; }
 function parseOperador(notes){ return (notes||'').match(/Operador:\s*([^·\n]+)/i)?.[1]?.trim()||''; }
-function cobTotal(ss)  { return ss.reduce((s,g)=>s+(g.grabados!=null?g.grabados:0),0); }
-function cobHas(ss)    { return ss.some(g=>g.grabados!=null); }
+function cobTotal(ss)  { return ss.reduce((s,g)=>s+(g.delivered_games!=null?g.delivered_games:(g.grabados||0)),0); }
+function cobHas(ss)    { return ss.some(g=>g.delivered_games!=null||g.grabados!=null); }
 
-function saveCobrables(gid, val) {
-  const g = games.find(x => x.id === gid);
-  if (!g) return;
-  g.grabados = val === '' ? null : (parseInt(val)||0);
-  store(LS.gm, games);
+function saveCobrables(sid, val) {
+  const idx = sessions.findIndex(s => s.id === sid);
+  if (idx < 0) return;
+  sessions[idx].delivered_games = val === '' ? null : (parseInt(val)||0);
+  sessions[idx].delivered = (sessions[idx].delivered_games || 0) > 0;
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
   updateCobrosBadge();
+  renderCobros();
 }
 
 function saveTarifa(lgId, val) {
@@ -4492,7 +4712,7 @@ function cobEstadoBtn(lgId, mes) {
 
 function cobLigaCard(lgId, mes, ss) {
   const lgObj  = getLg(lgId);
-  const prev   = ss.reduce((s,g)=>s+parsePrevistas(g.notes),0);
+  const prev   = ss.reduce((s,g)=>s+(g.planned_games!=null?g.planned_games:parsePrevistas(g.notes)),0);
   const hasCob = cobHas(ss);
   const cob    = hasCob ? cobTotal(ss) : null;
   const diff   = hasCob ? cob - prev : null;
@@ -4543,24 +4763,25 @@ function cobLigaCard(lgId, mes, ss) {
 function cobSessionTable(ss, showLiga) {
   if (!ss.length) return '';
   const headers = ['Fecha', ...(showLiga?['Liga']:[]), 'Sede', 'Cámaras', 'Encargado', 'Previstos', 'Cobrables', 'Dif.'];
-  const totalPrev = ss.reduce((s,g)=>s+parsePrevistas(g.notes),0);
+  const totalPrev = ss.reduce((s,g)=>s+(g.planned_games!=null?g.planned_games:parsePrevistas(g.notes)),0);
   const hasCob    = cobHas(ss);
   const totalCob  = hasCob ? cobTotal(ss) : null;
   const diffTot   = hasCob ? totalCob - totalPrev : null;
   const dtc       = diffTot==null?'#555':diffTot<0?'#ef4444':diffTot===0?'#2cb960':'#3b82f6';
   const inpS      = `background:#111;border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 5px;color:#fff;font-size:12px;font-family:inherit;outline:none;width:50px;text-align:center`;
   const rows = ss.map(g => {
-    const lgObj = getLg(g.league);
-    const prev  = parsePrevistas(g.notes);
-    const cams  = parseCamaras(g.notes);
-    const op    = parseOperador(g.notes);
-    const cob   = g.grabados != null ? g.grabados : '';
-    const diff  = (g.grabados!=null&&prev) ? g.grabados-prev : null;
+    const lgObj = getLg(g.liga || g.league);
+    const prev  = g.planned_games != null ? g.planned_games : parsePrevistas(g.notes);
+    const cams  = (g.cameras||[]).length ? g.cameras.join(', ') : parseCamaras(g.notes);
+    const op    = g.placed_by || g.downloaded_by || parseOperador(g.notes);
+    const cob   = g.delivered_games != null ? g.delivered_games : (g.grabados != null ? g.grabados : '');
+    const cobNum = cob !== '' ? parseInt(cob) : null;
+    const diff  = (cobNum!=null&&prev) ? cobNum-prev : null;
     const dc    = diff==null?'':diff<0?'#ef4444':diff===0?'#2cb960':'#3b82f6';
     return `<tr style="border-bottom:1px solid rgba(255,255,255,.03)" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
       <td style="padding:7px 10px;font-size:12px;color:#888;white-space:nowrap">${fmtDate(g.date)}</td>
-      ${showLiga?`<td style="padding:7px 8px;font-size:11px;font-weight:700;color:${lgObj?.color||'#fff'};white-space:nowrap">${lgObj?.icon||''} ${lgObj?.name||g.home}</td>`:''}
-      <td style="padding:7px 10px;font-size:13px;color:#ddd">${g.venue||g.away||'—'}</td>
+      ${showLiga?`<td style="padding:7px 8px;font-size:11px;font-weight:700;color:${lgObj?.color||'#fff'};white-space:nowrap">${lgObj?.icon||''} ${lgObj?.name||'—'}</td>`:''}
+      <td style="padding:7px 10px;font-size:13px;color:#ddd">${g.venue||'—'}</td>
       <td style="padding:7px 8px;font-size:11px;color:#555;max-width:120px;word-break:break-all">${cams||'—'}</td>
       <td style="padding:7px 8px;font-size:12px;color:#777">${op||'—'}</td>
       <td style="padding:7px 8px;text-align:center;font-size:13px;color:#888">${prev||'—'}</td>
@@ -4595,7 +4816,7 @@ function renderCobrosMes(el, sessions, mes) {
   }
   // Group by liga for cards
   const byLiga = {};
-  sessions.forEach(g => { if (!byLiga[g.league]) byLiga[g.league]=[]; byLiga[g.league].push(g); });
+  sessions.forEach(g => { const k=g.liga||g.league; if(!byLiga[k]) byLiga[k]=[]; byLiga[k].push(g); });
   const cards = Object.entries(byLiga).map(([lid, ss]) => cobLigaCard(lid, mes, ss)).join('');
   el.innerHTML = cards + cobSessionTable(sessions, true);
 }
@@ -4636,7 +4857,7 @@ function renderCobrosSemana(el, sessions, mes) {
 function renderCobrosLiga(el, allSessions, mes) {
   // Group all sessions by liga, then by month inside each liga
   const byLiga = {};
-  allSessions.forEach(g => { if (!byLiga[g.league]) byLiga[g.league]=[]; byLiga[g.league].push(g); });
+  allSessions.forEach(g => { const k=g.liga||g.league; if(!byLiga[k]) byLiga[k]=[]; byLiga[k].push(g); });
   if (!Object.keys(byLiga).length) {
     el.innerHTML = `<div style="color:#555;font-size:14px;padding:60px 0;text-align:center">Sin sesiones.</div>`;
     return;
@@ -4858,8 +5079,12 @@ function markAsGraficos(id) {
 /* ──────────────────────────────────────────────
    FLASK SERVER — GENERACIÓN CON ESCUDOS REALES
    ────────────────────────────────────────────── */
-// Flask siempre corre localmente — apunta siempre a localhost:5000
-const FLASK_URL = 'http://localhost:5000';
+// URL del servidor de generación de gráficos
+// En local usa localhost:5000; en producción usa la URL de Railway
+const RAILWAY_URL = 'https://buho-vision.up.railway.app'; // actualizar tras primer deploy
+const FLASK_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : RAILWAY_URL;
 let _flaskOk = false;
 
 // Mapa de nombres de liga de la app → nombre en el servidor Flask
@@ -5241,6 +5466,10 @@ function seedLogisticaAbril18_24() {
      delivered_games, confirmed_by, delivered_by, status_changed_by
    ────────────────────────────────────────────── */
 function seedPDFAbril2026() {
+  const KEY = 'ps2_seeded_pdf_abril2026_v1';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+
   const lgMap = {};
   leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
   function lgId(name) {
@@ -5394,11 +5623,76 @@ function seedPDFAbril2026() {
 }
 
 /* ──────────────────────────────────────────────
+   SEEDER COMPLEJOS (planilla ABRIL 2026)
+   Carga l.venues en cada liga con los complejos reales
+   ────────────────────────────────────────────── */
+function seedComplejos() {
+  const KEY = 'ps2_seeded_complejos_v3';
+  if (localStorage.getItem(KEY)) return;
+  ['v1','v2'].forEach(v => localStorage.removeItem(`ps2_seeded_complejos_${v}`));
+  localStorage.setItem(KEY, '1');
+
+  // Lista completa — dropdown LUGAR de la planilla
+  const ALL_VENUES = [
+    'PDR F5','Lomas 3','Zona Lab','Pro Futbol','Nazzasi','Polideportivo Carrasco',
+    'La Cantera','Los Cardales','Palermo','Forlan','Casuarinas','Invictus','Arachan','Ruta 8',
+    'SMU 1','SMU 2','SMU 3','SMU 4',
+    'Jack 1','Jack 3','Jack 4','Jack 5',
+    'UC102','Werden Bremen','Yatch',
+    'Albatros DTA','Olivol DTA','Reducto DTA','Juventud DTA','Hebraica DTA',
+    'Estudiantes','Nicolich','Liga Lokura','AutoGestión',
+  ];
+
+  // 1) Global venues → alimenta el selector de sesiones
+  ALL_VENUES.forEach(name => {
+    if (!venues.find(v => v.name.toLowerCase() === name.toLowerCase())) {
+      venues.push({ id: uid(), name, courts: [] });
+    }
+  });
+  store(LS.vn, venues);
+
+  // 2) Per-liga → tab Complejos de cada liga
+  const VENUE_MAP = {
+    'Solymar':          ['Lomas 3','Zona Lab','Forlan','Los Cardales','Casuarinas','Invictus'],
+    'Liga Kings':       ['Pro Futbol','Zona Lab'],
+    'Liga PRO':         ['Pro Futbol','Nazzasi','Polideportivo Carrasco'],
+    'Liga América':     ['Los Cardales','Casuarinas','SMU 1','SMU 2','SMU 3','SMU 4','Jack 1','Jack 3','Jack 4','Jack 5','UC102'],
+    'Liga Solo Fútbol': ['PDR F5','Ruta 8'],
+    'Liga Oriental':    ['PDR F5'],
+    'Liga Euro':        ['PDR F5'],
+    'Liga Uruguay':     ['La Cantera'],
+    'Liga Celeste':     ['La Cantera','Werden Bremen'],
+    'Liga MVD':         ['Palermo'],
+    'Liga Pando':       ['Arachan'],
+    'Liga Lokura':      ['Liga Lokura'],
+    'FUBB':             ['Estudiantes','Nicolich'],
+  };
+
+  let changed = false;
+  leagues.forEach(l => {
+    const vnames = VENUE_MAP[l.name];
+    if (!vnames) return;
+    if (!l.venues) l.venues = [];
+    vnames.forEach(name => {
+      if (!l.venues.find(v => v.name.toLowerCase() === name.toLowerCase())) {
+        l.venues.push({ id: uid(), name, address: '', notes: '' });
+        changed = true;
+      }
+    });
+  });
+  if (changed) store(LS.lg, leagues);
+}
+
+/* ──────────────────────────────────────────────
    SEEDER PDF "PARTIDOS COMPARTIDOS" (billing)
    Fuente: planilla compartidos/programados por liga y fecha
    Actualiza planned_games (programados) y delivered_games (compartidos cobrables)
    ────────────────────────────────────────────── */
 function seedCompartidosPDF() {
+  const KEY = 'ps2_seeded_compartidos_pdf_v1';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+
   const lgMap = {};
   leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
   function lgId(name) {
@@ -5512,6 +5806,155 @@ function seedCompartidosPDF() {
     store(LS.ss, sessions);
     try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
     if (created > 0) toast(`📊 PDF Compartidos: ${created} sesiones nuevas`);
+  }
+}
+
+/* ──────────────────────────────────────────────
+   SEEDER SEMANA 20-26 ABRIL 2026 (del PDF)
+   ────────────────────────────────────────────── */
+function seedCompartidosSemana20_26Abr() {
+  const KEY = 'ps2_seeded_compartidos_semana20abr2026_v1';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+
+  const lgMap = {};
+  leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
+  function lgId(name) {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return lgMap[n] || leagues.find(l => l.name.toLowerCase().includes(n) || n.includes(l.name.toLowerCase()))?.id || null;
+  }
+
+  // comp = compartidos (cobrables/entregados), prog = programados, null = dato no disponible/pendiente
+  const data = [
+    // ── LIGA MVD ──
+    { date:'2026-04-20', lg:'Liga MVD',           prog:6,  comp:6    },
+    { date:'2026-04-22', lg:'Liga MVD',           prog:6,  comp:6    },
+    { date:'2026-04-23', lg:'Liga MVD',           prog:7,  comp:6    },
+    // ── SOLYMAR ──
+    { date:'2026-04-20', lg:'Solymar',            prog:3,  comp:null },  // suspendido por lluvia
+    { date:'2026-04-22', lg:'Solymar',            prog:6,  comp:6    },  // lomas y zona lab
+    { date:'2026-04-24', lg:'Solymar',            prog:null,comp:2   },  // amistoso no registrado en planificación
+    { date:'2026-04-25', lg:'Solymar',            prog:2,  comp:2    },
+    { date:'2026-04-26', lg:'Solymar',            prog:10, comp:9    },
+    // ── LIGA KINGS ──
+    { date:'2026-04-22', lg:'Liga Kings',         prog:5,  comp:5    },
+    { date:'2026-04-26', lg:'Liga Kings',         prog:13, comp:null },  // pendientes de entrega
+    // ── PIRIA SEVEN LEAGUE ──
+    { date:'2026-04-22', lg:'Piria Seven League', prog:4,  comp:4    },
+    { date:'2026-04-25', lg:'Piria Seven League', prog:5,  comp:null },
+    // ── NEXO FÚTBOL ──
+    { date:'2026-04-24', lg:'Nexo Fútbol',        prog:6,  comp:6    },
+    // ── LIGA PRO ──
+    { date:'2026-04-20', lg:'Liga PRO', venue:'Polideportivo', prog:24, comp:23 },  // se suspendió 1
+    { date:'2026-04-20', lg:'Liga PRO', venue:'Pro Futbol',    prog:7,  comp:7  },
+    { date:'2026-04-25', lg:'Liga PRO', venue:'Pro Futbol',    prog:26, comp:26 },
+    { date:'2026-04-26', lg:'Liga PRO', venue:'Polideportivo', prog:15, comp:null },
+    // ── LIGA AMÉRICA ──
+    { date:'2026-04-26', lg:'Liga América',       prog:11, comp:9    },  // se suspendió 1
+    // ── LIGA CELESTE ──
+    { date:'2026-04-25', lg:'Liga Celeste',       prog:10, comp:null },
+    { date:'2026-04-26', lg:'Liga Celeste',       prog:12, comp:null },
+    // ── LIGA SOLO FÚTBOL ──
+    { date:'2026-04-21', lg:'Liga Solo Fútbol',   prog:null,comp:null },  // suspendido
+    { date:'2026-04-26', lg:'Liga Solo Fútbol',   prog:null,comp:null },
+  ];
+
+  let updated = 0, created = 0;
+  data.forEach(t => {
+    const lid = lgId(t.lg);
+    if (!lid) { console.warn('[seedCompartidos20abr] liga no encontrada:', t.lg); return; }
+
+    const all = sessions.filter(s => s.liga === lid && s.date === t.date);
+    let target = null;
+    if (t.venue && all.length > 1) {
+      target = all.find(s => s.venue && s.venue.toLowerCase().includes(t.venue.toLowerCase()));
+    }
+    if (!target) target = all[0] || null;
+
+    if (target) {
+      const idx = sessions.indexOf(target);
+      if (t.prog != null && t.prog > 0) sessions[idx].planned_games = t.prog;
+      if (t.comp != null && t.comp > 0 && !sessions[idx].delivered_games) {
+        sessions[idx].delivered_games = t.comp;
+      }
+      updated++;
+    } else {
+      sessions.push({
+        id: uid(),
+        date: t.date,
+        liga: lid,
+        liga_name: t.lg,
+        venue: t.venue || '',
+        courts: [], cameras: [],
+        placed_by: '', retrieved_by: '', downloaded_by: '',
+        start_time: '', end_time: '',
+        download_status: (t.comp != null && t.comp > 0) ? 'completa' : '',
+        planned_games:   t.prog || null,
+        confirmed_games: 0,
+        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : 0,
+        notes: ''
+      });
+      created++;
+    }
+  });
+
+  if (updated > 0 || created > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    if (created > 0) toast(`📊 Semana 20-26 abr: ${created} sesiones nuevas · ${updated} actualizadas`);
+  }
+}
+
+/* ──────────────────────────────────────────────
+   SEEDER LIGA PANDO SEMANA 20-26 ABRIL 2026
+   Fuente: reporte Guille Olalde
+   ────────────────────────────────────────────── */
+function seedLigaPandoSemana20_26Abr() {
+  const KEY = 'ps2_seeded_ligapando_semana20abr2026_v1';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+
+  const lgId = leagues.find(l => l.name === 'Liga Pando')?.id;
+  if (!lgId) { console.warn('[seedLigaPando] Liga Pando no encontrada'); return; }
+
+  // Jue 23/4: 3 F8 + 9 F7 = 12 | Sáb 25/4: 3 F8 + 2 F11 = 5 | Dom 26/4: 2 F8 + 8 F11 + 1 CSD Olmos = 11
+  const data = [
+    { date:'2026-04-23', prog:12, comp:null },
+    { date:'2026-04-25', prog:5,  comp:null },
+    { date:'2026-04-26', prog:11, comp:null },
+  ];
+
+  let updated = 0, created = 0;
+  data.forEach(t => {
+    const target = sessions.find(s => s.liga === lgId && s.date === t.date);
+    if (target) {
+      const idx = sessions.indexOf(target);
+      if (t.prog != null) sessions[idx].planned_games = t.prog;
+      if (t.comp != null && t.comp > 0 && !sessions[idx].delivered_games) {
+        sessions[idx].delivered_games = t.comp;
+      }
+      updated++;
+    } else {
+      sessions.push({
+        id: uid(), date: t.date, liga: lgId, liga_name: 'Liga Pando',
+        venue: '', courts: [], cameras: [],
+        placed_by: '', retrieved_by: '', downloaded_by: '',
+        start_time: '', end_time: '',
+        download_status: '',
+        planned_games: t.prog || null,
+        confirmed_games: 0,
+        delivered_games: 0,
+        notes: ''
+      });
+      created++;
+    }
+  });
+
+  if (updated > 0 || created > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    if (created > 0) toast(`📊 Liga Pando 20-26 abr: ${created} sesiones nuevas · ${updated} actualizadas`);
   }
 }
 
@@ -5704,6 +6147,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if (area && btn) {
     area.addEventListener('input', ()=>{ btn.style.display = area.value.trim() ? 'block' : 'none'; });
   }
+  // Cargar ligas en el generador directo
+  gdLoadLeagues();
 });
 
 /* ──────────────────────────────────────────────
@@ -7106,7 +7551,8 @@ document.addEventListener('keydown', e => {
   <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()" title="Seleccionar todos los visibles">☑ Todos</button>
   <button class="btn btn-ghost btn-sm" onclick="selectByDay()" title="Seleccionar todos los partidos de un día">📅 Por día…</button>
   <button class="btn btn-ghost btn-sm" onclick="selectThisWeek()" title="Seleccionar todos los de la semana actual">📆 Esta semana</button>
-  <button class="btn btn-ghost btn-sm" onclick="moveToNextWeek()" title="Mover seleccionados 7 días adelante">➡ Semana siguiente</button>
+  <button class="btn btn-ghost btn-sm" onclick="moveToNextWeek()" title="Mover seleccionados 7 días adelante">➡ Mover semana sig.</button>
+  <button class="btn btn-ghost btn-sm" onclick="copyToNextWeek()" title="Copiar a semana siguiente (sin datos de entrega)">📋 Copiar semana sig.</button>
   <button class="btn btn-ghost btn-sm" onclick="moveToSpecificDay()" title="Mover a una fecha específica">📌 Mover a fecha…</button>
   <button class="btn btn-sm" style="background:#ef4444;color:#fff" onclick="deleteSelected()">🗑 Eliminar</button>
   <button class="btn btn-ghost btn-sm" onclick="toggleSelectMode()">✕ Cancelar</button>
@@ -7237,6 +7683,50 @@ function moveToNextWeek() {
   toast(`📅 ${n} sesión${n>1?'es':''} movida${n>1?'s':''} a la semana siguiente`);
 }
 
+function copyToNextWeek() {
+  if (!selectedGames.size) { toast('No hay sesiones seleccionadas', 'warn'); return; }
+  const n = selectedGames.size;
+  const copies = [];
+  sessions.forEach(s => {
+    if (!selectedGames.has(s.id) || !s.date) return;
+    const d = new Date(s.date + 'T12:00:00');
+    d.setDate(d.getDate() + 7);
+    copies.push({
+      id:                     uid(),
+      date:                   d.toISOString().split('T')[0],
+      liga:                   s.liga,
+      liga_name:              s.liga_name || '',
+      venue:                  s.venue || '',
+      courts:                 s.courts ? [...s.courts] : [],
+      cameras:                s.cameras ? [...s.cameras] : [],
+      placed_by:              s.placed_by || '',
+      retrieved_by:           s.retrieved_by || '',
+      downloaded_by:          s.downloaded_by || '',
+      start_time:             s.start_time || '',
+      end_time:               s.end_time || '',
+      planned_games:          s.planned_games || null,
+      // limpia los datos de entrega/grabacion
+      confirmed_games:        0,
+      confirmed_by:           '',
+      confirmed_at:           '',
+      delivered_games:        0,
+      delivered:              false,
+      delivered_by:           '',
+      delivered_at:           '',
+      download_status:        '',
+      material_delivery_status: '',
+      notes:                  '',
+    });
+  });
+  sessions.push(...copies);
+  selectedGames.clear();
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  refresh();
+  toggleSelectMode();
+  toast(`📋 ${n} sesión${n>1?'es':''} copiada${n>1?'s':''} a la semana siguiente (sin datos de entrega)`);
+}
+
 function deleteSelected() {
   if (!selectedGames.size) { toast('No hay sesiones seleccionadas', 'warn'); return; }
   const n = selectedGames.size;
@@ -7298,6 +7788,19 @@ function quickStatus(sessionId, status, event) {
   if (document.getElementById('prod-list')) renderKanban();
 }
 
+function quickMaterialStatus(sessionId, status, event) {
+  event.stopPropagation();
+  const idx = sessions.findIndex(s => s.id === sessionId);
+  if (idx < 0) return;
+  sessions[idx].material_delivery_status = status;
+  store(LS.ss, sessions);
+  try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+  const labels = { completado:'Completado', pendiente:'Pendiente', '':'Sin estado' };
+  toast(`📦 Entrega material: ${labels[status]||status}`);
+  renderWeek();
+  if (document.getElementById('prod-list')) renderKanban();
+}
+
 function openSessionDetail(id) {
   const s = sessions.find(x => x.id === id);
   if (!s) return;
@@ -7311,7 +7814,7 @@ function openSessionEditModal(id) {
 }
 
 function openNewSession(date) {
-  openSessionModal({ id: uid(), date, liga: '', venue: '', courts: [], cameras: [], placed_by: '', downloaded_by: '', download_status: '', planned_games: null, confirmed_games: 0, delivered_games: 0, notes: '' }, true);
+  openSessionModal({ id: uid(), date, liga: '', venue: '', courts: [], cameras: [], placed_by: '', downloaded_by: '', download_status: '', material_delivery_status: '', planned_games: null, confirmed_games: 0, delivered_games: 0, notes: '' }, true);
 }
 
 function openSessionModal(s, isNew) {
@@ -7401,6 +7904,14 @@ function openSessionModal(s, isNew) {
           <input id="sm-delivered" type="number" min="0" class="finput" value="${s.delivered_games||0}">
         </div>
         <div>
+          <label class="flabel">Entrega de material</label>
+          <select id="sm-material-status" class="finput">
+            <option value="" ${!s.material_delivery_status?'selected':''}>Sin estado</option>
+            <option value="pendiente" ${s.material_delivery_status==='pendiente'?'selected':''}>⏳ Pendiente</option>
+            <option value="completado" ${s.material_delivery_status==='completado'?'selected':''}>✅ Completado</option>
+          </select>
+        </div>
+        <div>
           <label class="flabel">Notas</label>
           <textarea id="sm-notes" class="finput" rows="2" placeholder="Observaciones…">${s.notes||''}</textarea>
         </div>
@@ -7457,8 +7968,9 @@ function saveSession(id) {
     download_status:  document.getElementById('sm-status').value,
     planned_games:    parseInt(document.getElementById('sm-planned').value)||null,
     confirmed_games:  parseInt(document.getElementById('sm-confirmed').value)||0,
-    delivered_games:  parseInt(document.getElementById('sm-delivered').value)||0,
-    notes:            document.getElementById('sm-notes').value.trim(),
+    delivered_games:          parseInt(document.getElementById('sm-delivered').value)||0,
+    material_delivery_status: document.getElementById('sm-material-status').value,
+    notes:                    document.getElementById('sm-notes').value.trim(),
   };
   const idx = sessions.findIndex(s => s.id === id);
   if (idx >= 0) sessions[idx] = obj;
@@ -7617,6 +8129,113 @@ function closeMobSheet() {
 }
 
 /* ══════════════════════════════════════════════
+   IMPORTAR CÁMARAS DESDE VEO
+   ══════════════════════════════════════════════ */
+
+// Detecta la liga actual de una cámara basándose en el título de su última grabación
+function ligaDesdeGrabacion(titulo) {
+  if (!titulo) return '';
+  const t = titulo.toLowerCase();
+  if (/liga kings/i.test(t))                         return 'LIGA KINGS';
+  if (/liga pro|liga\s*pro/i.test(t))                return 'LIGA PRO';
+  if (/liga mvd/i.test(t))                           return 'LIGA MVD';
+  if (/liga pando|lpf|lfp|punta league|punta\s*league|\bpando\b/i.test(t)) return 'LIGA PANDO';
+  if (/liga solymar|solymar/i.test(t))               return 'LIGA SOLYMAR';
+  if (/piria seven|piria 7/i.test(t))                return 'PIRIA SEVEN';
+  if (/piria/i.test(t))                              return 'PIRIÁPOLIS';
+  if (/liga lokura|lokura/i.test(t))                 return 'LIGA LOKURA';
+  if (/liga celeste|celeste/i.test(t))               return 'LIGA CELESTE';
+  if (/liga uruguay|oriental/i.test(t))              return 'LIGA URUGUAY';
+  if (/liga lvh|lvh|euro/i.test(t))                  return 'LIGA LVH';
+  if (/liga ofi|ofi/i.test(t))                       return 'LIGA OFI';
+  if (/fubb|basketball|femenina/i.test(t))           return 'LIGA FEMENINA BASKETBALL';
+  if (/livosur|volley/i.test(t))                     return 'LIVOSUR';
+  if (/americano|futbol americano/i.test(t))         return 'LIGA FUTBOL AMERICANO';
+  if (/senior maldonado|senior/i.test(t))            return 'LIGA SENIOR';
+  if (/personal 2|personal2/i.test(t))               return 'PERSONAL 2';
+  if (/transmis/i.test(t))                           return 'TRANSMISIÓN';
+  return '';
+}
+
+async function importarCamarasVeo() {
+  const FLASK = window.location.origin.includes('localhost') || window.location.protocol === 'file:'
+    ? 'http://localhost:5000' : window.location.origin;
+
+  try {
+    toast('🔄 Conectando con Veo...', '');
+    const res  = await fetch(`${FLASK}/api/veo-cameras`);
+    if (!res.ok) { toast('❌ Error al obtener datos de Veo', 'err'); return; }
+    const data = await res.json();
+    const incoming = data.cameras || [];
+
+    if (!incoming.length) { toast('Sin cámaras en el archivo', 'warn'); return; }
+
+    // REEMPLAZAR completamente — Veo es la fuente de verdad.
+    // Preservar datos manuales (notas, tripode, etc.) si la cámara ya existía.
+    const getNum = s => (s || '').replace(/^(vc\d+-|veocam\d+-)/i, '').toUpperCase();
+    const nuevasCamaras = [];
+    let nuevas = 0, actualizadas = 0;
+
+    incoming.forEach(cam => {
+      const sn = getNum(cam.serie);
+      const prev = camaras.find(c =>
+        c.serie === cam.serie ||
+        c.serie.toUpperCase() === cam.serie.toUpperCase() ||
+        getNum(c.serie) === sn
+      );
+      const ligaDetectada = ligaDesdeGrabacion(cam.ultima_grabacion_titulo);
+      if (prev) {
+        // Preservar id y datos manuales, actualizar todo lo que viene de Veo
+        nuevasCamaras.push({
+          ...prev,
+          serie:                   cam.serie,
+          serial_numero:           cam.serial_numero || prev.serial_numero || '',
+          clubhouse:               cam.clubhouse || prev.clubhouse || '',
+          estado:                  cam.estado    || prev.estado    || 'ASOCIADA',
+          modelo:                  cam.modelo    || prev.modelo    || 'VEO',
+          ubicacion:               ligaDetectada || cam.ubicacion_detectada || prev.ubicacion || '',
+          movimiento:              cam.movimiento_detectado || prev.movimiento || '',
+          ultima_grabacion_fecha:  cam.ultima_grabacion_fecha  || prev.ultima_grabacion_fecha  || '',
+          ultima_grabacion_titulo: cam.ultima_grabacion_titulo || prev.ultima_grabacion_titulo || '',
+          updated_by: 'Veo Auto-Scan',
+          updated_at: new Date().toISOString(),
+        });
+        actualizadas++;
+      } else {
+        nuevasCamaras.push({
+          id:                      uid(),
+          serie:                   cam.serie,
+          serial_numero:           cam.serial_numero || '',
+          modelo:                  cam.modelo || 'VEO',
+          estado:                  cam.estado || 'ASOCIADA',
+          clubhouse:               cam.clubhouse || '',
+          ubicacion:               ligaDetectada || cam.ubicacion_detectada || '',
+          movimiento:              cam.movimiento_detectado || '',
+          trip_modelo:             '',
+          trip_estado:             '',
+          trip_ubicacion:          '',
+          trip_mov:                '',
+          ultima_grabacion_fecha:  cam.ultima_grabacion_fecha  || '',
+          ultima_grabacion_titulo: cam.ultima_grabacion_titulo || '',
+          updated_by:              'Veo Auto-Scan',
+          updated_at:              new Date().toISOString(),
+        });
+        nuevas++;
+      }
+    });
+
+    // Reemplazar completamente (no merge) — elimina las 70 viejas
+    camaras = nuevasCamaras;
+    store(LS.cm, camaras);
+    try { db.collection('sessions_data').doc('main').set({ [LS.cm]: camaras }, { merge: true }); } catch(e) {}
+    renderTrazabilidad();
+    toast(`✅ ${nuevasCamaras.length} cámaras cargadas (${nuevas} nuevas · ${actualizadas} actualizadas)`);
+  } catch(e) {
+    toast(`❌ Error: ${e.message}`, 'err');
+  }
+}
+
+/* ══════════════════════════════════════════════
    TRAZABILIDAD DE CÁMARAS
    ══════════════════════════════════════════════ */
 
@@ -7656,9 +8275,7 @@ const DEFAULT_CAMARAS = [
 ];
 
 function seedDefaultCamaras() {
-  if (camaras.length) return;
-  camaras = DEFAULT_CAMARAS.map(c => ({ id: uid(), ...c }));
-  store(LS.cm, camaras);
+  // Desactivado — datos ahora vienen del scan de Veo (Importar Veo)
 }
 
 function ubicColor(ub) {
@@ -7722,17 +8339,18 @@ function renderTrazabilidad() {
 
     const modeloBadge = `<span style="background:var(--bg-3);color:var(--orange);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;border:1px solid var(--orange-b)">${c.modelo||'—'}</span>`;
 
-    const tripModeloBadge = c.trip_modelo
-      ? `<span style="background:rgba(59,130,246,.12);color:#3b82f6;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${c.trip_modelo}</span>`
-      : '';
-
-    const tripEstadoBadge = c.trip_estado
-      ? `<span style="color:${c.trip_estado==='SANO'?'#2cb960':'#ef4444'};font-size:11px;font-weight:700">${c.trip_estado}</span>`
-      : '';
-
     const dt = c.updated_at ? new Date(c.updated_at) : null;
     const updatedStr = c.updated_by
       ? `<div style="font-size:10px;color:var(--t-3);margin-top:8px">✏️ ${c.updated_by}${dt ? ' · '+dt.getDate()+'/'+(dt.getMonth()+1)+'/'+dt.getFullYear() : ''}</div>`
+      : '';
+    const grabFecha  = c.ultima_grabacion_fecha  || c.ultima_grabacion || '';
+    const grabTitulo = c.ultima_grabacion_titulo || '';
+    const ultimaGrab = grabFecha
+      ? `<div style="margin-top:8px;padding:7px 10px;background:rgba(59,130,246,.07);border-radius:6px;border-left:3px solid #3b82f6">
+           <div style="font-size:9px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">📹 Última grabación</div>
+           <div style="font-size:11.5px;font-weight:700;color:var(--t-0)">${grabFecha}</div>
+           ${grabTitulo ? `<div style="font-size:11px;color:var(--t-2);margin-top:2px">${grabTitulo}</div>` : ''}
+         </div>`
       : '';
 
     const actionBtn = currentRole === 'admin'
@@ -7772,30 +8390,8 @@ function renderTrazabilidad() {
             <div style="font-size:11.5px;color:var(--t-2)">${c.movimiento}</div>
           </div>` : ''}
         </div>
+        ${ultimaGrab}
         ${updatedStr}
-      </div>
-
-      <!-- TRÍPODE -->
-      <div style="border-top:1px solid var(--b-1);padding:10px 16px 12px;background:var(--bg-3);flex:1">
-        <div style="font-size:9px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🎬 Trípode</div>
-        ${noTrip
-          ? `<div style="font-size:11px;color:var(--t-3)">Sin trípode asignado</div>`
-          : `<div style="display:grid;grid-template-columns:auto auto 1fr;gap:6px 10px;align-items:start">
-              <div>
-                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Modelo</div>
-                <div>${tripModeloBadge||'—'}</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Estado</div>
-                <div>${tripEstadoBadge||'<span style="color:var(--t-3)">—</span>'}</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--t-3);margin-bottom:2px">Ubicación</div>
-                <div style="font-size:11.5px;font-weight:600;color:${ubicColor(c.trip_ubicacion)}">${c.trip_ubicacion||'—'}</div>
-              </div>
-              ${c.trip_mov ? `<div style="grid-column:1/-1;font-size:11px;color:var(--t-2)">${c.trip_mov}</div>` : ''}
-            </div>`
-        }
       </div>
 
       <!-- ACCIÓN -->
@@ -7804,6 +8400,7 @@ function renderTrazabilidad() {
       </div>
     </div>`;
   }).join('');
+  renderTripodes();
 }
 
 function openAddCamaraModal(id) {
@@ -7862,6 +8459,97 @@ function deleteCamara(id) {
   toast('Cámara eliminada');
 }
 
+/* ══════════════════════════════════════════════
+   TRÍPODES
+   ══════════════════════════════════════════════ */
+function saveTripodes() {
+  store(LS.tp, tripodes);
+  try { db.collection('sessions_data').doc('main').set({ [LS.tp]: tripodes }, { merge: true }); } catch(e) {}
+}
+
+function renderTripodes() {
+  const list  = document.getElementById('trip-list');
+  const badge = document.getElementById('trip-total-badge');
+  if (!list) return;
+
+  const total = tripodes.reduce((s, t) => s + (parseInt(t.cantidad) || 0), 0);
+  if (badge) badge.textContent = `${total} trípode${total !== 1 ? 's' : ''} en total`;
+
+  if (!tripodes.length) {
+    list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--t-3);font-size:13px">Sin trípodes registrados</div>`;
+    return;
+  }
+
+  let html = `<div style="background:var(--bg-2);border:1px solid var(--b-1);border-radius:var(--r-md);overflow:hidden">
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:0;border-bottom:1px solid var(--b-1)">
+      <div style="padding:8px 14px;font-size:10px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px">🏆 Liga</div>
+      <div style="padding:8px 14px;font-size:10px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px">🏟️ Complejo</div>
+      <div style="padding:8px 14px;font-size:10px;font-weight:700;color:var(--t-3);text-transform:uppercase;letter-spacing:.8px;text-align:center">Cant.</div>
+      <div style="padding:8px 14px"></div>
+    </div>
+    <div style="display:flex;flex-direction:column">`;
+
+  tripodes.forEach((t, i) => {
+    const border = i > 0 ? 'border-top:1px solid var(--b-0);' : '';
+    html += `<div style="${border}display:grid;grid-template-columns:1fr 1fr auto auto;align-items:center;gap:0">
+      <div style="padding:11px 14px;font-size:13px;font-weight:700;color:var(--t-0)">${t.liga || '<span style="color:var(--t-3)">—</span>'}</div>
+      <div style="padding:11px 14px;font-size:12px;color:var(--t-1)">${t.complejo || '<span style="color:var(--t-3)">—</span>'}</div>
+      <div style="padding:11px 14px;font-size:20px;font-weight:900;color:var(--orange);text-align:center">${t.cantidad}</div>
+      ${currentRole==='admin' ? `<div style="padding:8px 10px;display:flex;gap:5px">
+        <button onclick="openTripodeModal('${t.id}')" style="padding:4px 10px;border-radius:5px;border:1px solid var(--b-2);background:var(--bg-3);color:var(--t-1);font-size:11px;cursor:pointer">Editar</button>
+        <button onclick="deleteTripode('${t.id}')" style="padding:4px 8px;border-radius:5px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;font-size:11px;cursor:pointer">✕</button>
+      </div>` : '<div></div>'}
+    </div>`;
+  });
+
+  html += `</div></div>`;
+  list.innerHTML = html;
+}
+
+function openTripodeModal(id) {
+  document.getElementById('trip-edit-id').value  = id || '';
+  document.getElementById('trip-liga').value     = '';
+  document.getElementById('trip-complejo').value = '';
+  document.getElementById('trip-cantidad').value = '1';
+  if (id) {
+    const t = tripodes.find(x => x.id === id);
+    if (t) {
+      document.getElementById('trip-liga').value     = t.liga     || '';
+      document.getElementById('trip-complejo').value = t.complejo || '';
+      document.getElementById('trip-cantidad').value = t.cantidad;
+    }
+  }
+  openM('m-tripode');
+}
+
+function saveTripode() {
+  const liga     = document.getElementById('trip-liga').value.trim();
+  const complejo = document.getElementById('trip-complejo').value.trim();
+  const cantidad = parseInt(document.getElementById('trip-cantidad').value) || 0;
+  if (!liga && !complejo) { toast('Ingresá al menos liga o complejo', 'warn'); return; }
+  if (cantidad < 1)       { toast('La cantidad debe ser mayor a 0', 'warn'); return; }
+
+  const id = document.getElementById('trip-edit-id').value;
+  if (id) {
+    const t = tripodes.find(x => x.id === id);
+    if (t) { t.liga = liga; t.complejo = complejo; t.cantidad = cantidad; }
+  } else {
+    tripodes.push({ id: uid(), liga, complejo, cantidad });
+  }
+  saveTripodes();
+  renderTripodes();
+  closeM('m-tripode');
+  toast('✅ Trípode guardado');
+}
+
+function deleteTripode(id) {
+  if (!confirm('¿Eliminar este registro de trípodes?')) return;
+  tripodes = tripodes.filter(t => t.id !== id);
+  saveTripodes();
+  renderTripodes();
+  toast('Trípode eliminado');
+}
+
 function openCamaraPosesion(id) {
   const c = camaras.find(x => x.id === id);
   if (!c) return;
@@ -7891,6 +8579,432 @@ function saveCamaraPosesion() {
   closeM('m-camara-posesion');
   renderTrazabilidad();
   toast(`📍 Posesión actualizada por ${who}`);
+}
+
+/* ══════════════════════════════════════════════════
+   GENERADOR DIRECTO DE MARCADORES
+   ══════════════════════════════════════════════════ */
+// ── State ──
+let gdLeagueInfo  = {};
+let gdTeamsList   = [];
+let gdGameCount   = 0;
+let gdLastGames   = [];
+let gdLogoFiles   = [];
+let gdCurrentMode = 'manual'; // 'manual' | 'shot'
+
+// ── Toggle card ──
+function toggleCard(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'flex';
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ── Load leagues into #gd-league select ──
+async function gdLoadLeagues() {
+  try {
+    const res = await fetch(FLASK_URL + '/api/leagues');
+    const data = await res.json();
+    const sel = document.getElementById('gd-league');
+    (data.leagues || []).forEach(l => {
+      gdLeagueInfo[l.name] = l;
+      const opt = document.createElement('option');
+      opt.value = l.name;
+      opt.textContent = (l.emoji ? l.emoji + ' ' : '') + l.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) { /* server offline */ }
+}
+
+// ── League changed ──
+async function gdOnLeagueChange() {
+  const sel   = document.getElementById('gd-league');
+  const name  = sel.value;
+  if (!name) return;
+
+  const badge = document.getElementById('gd-sport-badge');
+  const info  = gdLeagueInfo[name];
+  const sport = info?.sport || 'football';
+  badge.textContent = sport === 'basketball' ? '🏀 Basketball' : '⚽ Fútbol';
+
+  // Load teams for autocomplete
+  try {
+    const res = await fetch(FLASK_URL + `/api/teams/${encodeURIComponent(name)}`);
+    const data = await res.json();
+    gdTeamsList = (data.teams || []).map(t => t.name || t);
+  } catch(e) { gdTeamsList = []; }
+
+  // Reset games list, add one empty game
+  const container = document.getElementById('gd-games');
+  container.innerHTML = '';
+  gdGameCount = 0;
+  document.getElementById('gd-results').innerHTML = '';
+  document.getElementById('gd-missing').style.display = 'none';
+  gdAddGame();
+}
+
+// ── Add game row ──
+function gdAddGame() {
+  const league = document.getElementById('gd-league').value;
+  const sport  = gdLeagueInfo[league]?.sport || 'football';
+  const id     = ++gdGameCount;
+  const opts   = gdTeamsList.map(t => `<option value="${t}">`).join('');
+  const container = document.getElementById('gd-games');
+  const div = document.createElement('div');
+  div.id = `gd-game-${id}`;
+  div.style.cssText = 'background:var(--bg-3);border:1px solid var(--b-1);border-radius:var(--r-sm);padding:12px 14px;position:relative;margin-bottom:8px';
+
+  if (sport === 'basketball') {
+    div.innerHTML = `
+      <button onclick="gdRemoveGame(${id})" title="Eliminar" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--t-2);cursor:pointer;font-size:14px">✕</button>
+      <div style="font-size:10px;font-weight:700;color:var(--t-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Partido ${id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label class="flabel">Local</label>
+          <input class="finput" id="gd-home-${id}" placeholder="Equipo local" list="gd-tl1-${id}" autocomplete="off">
+          <datalist id="gd-tl1-${id}">${opts}</datalist>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">1C</div><input type="number" class="finput" id="gd-hq1-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">2C</div><input type="number" class="finput" id="gd-hq2-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">3C</div><input type="number" class="finput" id="gd-hq3-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">4C</div><input type="number" class="finput" id="gd-hq4-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+          </div>
+        </div>
+        <div>
+          <label class="flabel">Visitante</label>
+          <input class="finput" id="gd-away-${id}" placeholder="Equipo visitante" list="gd-tl2-${id}" autocomplete="off">
+          <datalist id="gd-tl2-${id}">${opts}</datalist>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">1C</div><input type="number" class="finput" id="gd-aq1-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">2C</div><input type="number" class="finput" id="gd-aq2-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">3C</div><input type="number" class="finput" id="gd-aq3-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+            <div><div style="font-size:10px;color:var(--t-2);text-align:center;margin-bottom:2px">4C</div><input type="number" class="finput" id="gd-aq4-${id}" min="0" placeholder="0" style="text-align:center;padding:4px"></div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <button onclick="gdRemoveGame(${id})" title="Eliminar" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--t-2);cursor:pointer;font-size:14px">✕</button>
+      <div style="font-size:10px;font-weight:700;color:var(--t-2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Partido ${id}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <input class="finput" id="gd-home-${id}" placeholder="Local" list="gd-tl1-${id}" autocomplete="off" style="flex:1;min-width:120px">
+        <datalist id="gd-tl1-${id}">${opts}</datalist>
+        <input type="number" class="finput" id="gd-hs-${id}" min="0" value="0" style="width:54px;text-align:center">
+        <span style="color:var(--t-2);font-weight:700">—</span>
+        <input type="number" class="finput" id="gd-as-${id}" min="0" value="0" style="width:54px;text-align:center">
+        <input class="finput" id="gd-away-${id}" placeholder="Visitante" list="gd-tl2-${id}" autocomplete="off" style="flex:1;min-width:120px">
+        <datalist id="gd-tl2-${id}">${opts}</datalist>
+      </div>`;
+  }
+
+  container.appendChild(div);
+  div.querySelector(`#gd-home-${id}`)?.focus();
+}
+
+function gdRemoveGame(id) {
+  document.getElementById(`gd-game-${id}`)?.remove();
+}
+
+// ── Mode switch ──
+function gdSwitchMode(mode) {
+  gdCurrentMode = mode;
+  document.getElementById('gd-mode-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('gd-mode-shot').style.display   = mode === 'shot'   ? 'flex'  : 'none';
+  const tabM = document.getElementById('gd-tab-manual');
+  const tabS = document.getElementById('gd-tab-shot');
+  if (tabM) { tabM.style.background = mode === 'manual' ? '#a855f7' : 'transparent'; tabM.style.color = mode === 'manual' ? '#fff' : 'var(--t-2)'; }
+  if (tabS) { tabS.style.background = mode === 'shot'   ? '#a855f7' : 'transparent'; tabS.style.color = mode === 'shot'   ? '#fff' : 'var(--t-2)'; }
+  document.getElementById('gd-results').innerHTML = '';
+  document.getElementById('gd-missing').style.display = 'none';
+}
+
+// ── Screenshot handlers ──
+function gdHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('gd-dropzone').style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) gdLoadImageFile(file);
+}
+function gdHandleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) gdLoadImageFile(file);
+}
+function gdLoadImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('gd-img-preview').src = ev.target.result;
+    document.getElementById('gd-img-preview-wrap').style.display = 'flex';
+    document.getElementById('gd-dropzone').style.display = 'none';
+    document.getElementById('gd-detected-wrap').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+function gdClearImage() {
+  document.getElementById('gd-img-preview').src = '';
+  document.getElementById('gd-img-preview-wrap').style.display = 'none';
+  document.getElementById('gd-dropzone').style.display = 'block';
+  document.getElementById('gd-file-input').value = '';
+  document.getElementById('gd-detected-wrap').style.display = 'none';
+}
+
+async function gdParseImage() {
+  const imgSrc = document.getElementById('gd-img-preview').src;
+  if (!imgSrc) return;
+  document.getElementById('gd-parse-btn').disabled = true;
+  document.getElementById('gd-parse-loading').style.display = 'inline';
+  document.getElementById('gd-detected-wrap').style.display = 'none';
+  try {
+    const res  = await fetch(FLASK_URL + '/api/parse-image', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ image: imgSrc })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('Error: ' + (data.error || 'No se pudo analizar'), 'error'); return; }
+    gdRenderDetectedGames(data.games || []);
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  finally {
+    document.getElementById('gd-parse-btn').disabled = false;
+    document.getElementById('gd-parse-loading').style.display = 'none';
+  }
+}
+
+function gdRenderDetectedGames(games) {
+  const list = document.getElementById('gd-detected-list');
+  list.innerHTML = '';
+  if (!games.length) {
+    list.innerHTML = '<div style="color:var(--t-2);font-size:12px;padding:8px 0">No se detectaron resultados. Probá con otra imagen.</div>';
+    document.getElementById('gd-detected-wrap').style.display = 'flex';
+    return;
+  }
+  games.forEach((g, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-3);border-radius:var(--r-sm);padding:8px 10px';
+    div.innerHTML = `
+      <input class="finput" type="text" value="${g.home||''}" id="gd-det-home-${i}" placeholder="Local" style="flex:1;min-width:120px">
+      <input type="number" class="finput" value="${g.home_score||0}" id="gd-det-hs-${i}" min="0" style="width:52px;text-align:center">
+      <span style="color:var(--t-2);font-weight:700">—</span>
+      <input type="number" class="finput" value="${g.away_score||0}" id="gd-det-as-${i}" min="0" style="width:52px;text-align:center">
+      <input class="finput" type="text" value="${g.away||''}" id="gd-det-away-${i}" placeholder="Visitante" style="flex:1;min-width:120px">
+      <button style="background:none;border:none;color:var(--t-2);cursor:pointer;font-size:13px;padding:0 4px" onclick="this.closest('div').remove()">✕</button>`;
+    list.appendChild(div);
+  });
+  document.getElementById('gd-detected-wrap').style.display = 'flex';
+}
+
+// ── Collect games from form ──
+function gdCollectGames() {
+  const league = document.getElementById('gd-league').value;
+  const sport  = gdLeagueInfo[league]?.sport || 'football';
+  const games  = [];
+
+  if (gdCurrentMode === 'shot') {
+    document.querySelectorAll('#gd-detected-list > div').forEach((el, i) => {
+      const home = document.getElementById(`gd-det-home-${i}`)?.value.trim();
+      const away = document.getElementById(`gd-det-away-${i}`)?.value.trim();
+      const hs   = document.getElementById(`gd-det-hs-${i}`)?.value || '0';
+      const as_  = document.getElementById(`gd-det-as-${i}`)?.value || '0';
+      if (home && away) games.push({ home, away, home_score: hs, away_score: as_ });
+    });
+    return games;
+  }
+
+  document.querySelectorAll('[id^="gd-game-"]').forEach(el => {
+    const id   = el.id.replace('gd-game-','');
+    const home = document.getElementById(`gd-home-${id}`)?.value.trim();
+    const away = document.getElementById(`gd-away-${id}`)?.value.trim();
+    if (!home || !away) return;
+    if (sport === 'basketball') {
+      const hq = [1,2,3,4].map(q => parseInt(document.getElementById(`gd-hq${q}-${id}`)?.value)||0);
+      const aq = [1,2,3,4].map(q => parseInt(document.getElementById(`gd-aq${q}-${id}`)?.value)||0);
+      games.push({ home, away, home_quarters: hq, away_quarters: aq });
+    } else {
+      const hs = document.getElementById(`gd-hs-${id}`)?.value || '0';
+      const as_ = document.getElementById(`gd-as-${id}`)?.value || '0';
+      games.push({ home, away, home_score: hs, away_score: as_ });
+    }
+  });
+  return games;
+}
+
+// ── Generate ──
+async function gdGenerate() {
+  const league = document.getElementById('gd-league').value;
+  if (!league) { toast('⚠️ Seleccioná una liga primero'); return; }
+  const sport  = gdLeagueInfo[league]?.sport || 'football';
+  const games  = gdCollectGames();
+  if (!games.length) { toast('⚠️ Completá al menos un partido'); return; }
+
+  const btn = document.querySelector('#gendir-body button[onclick="gdGenerate()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+
+  const results = document.getElementById('gd-results');
+  results.innerHTML = '';
+  document.getElementById('gd-missing').style.display = 'none';
+
+  if (sport === 'basketball') {
+    for (const g of games) await _gdGenBasketball(g, league, results);
+  } else {
+    await _gdGenFootball(games, league, results);
+  }
+
+  gdLastGames = games;
+  await gdCheckAndShowMissing(games, league);
+
+  if (btn) { btn.disabled = false; btn.textContent = '⚡ Generar'; }
+}
+
+async function _gdGenFootball(games, league, results) {
+  if (games.length === 1) {
+    const g    = games[0];
+    const item = gdAddResultItem(results, `${g.home} VS ${g.away}`);
+    gdSetStatus(item, 'loading');
+    try {
+      const res = await fetch(FLASK_URL + '/api/generate-graphic', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ league, home_team: g.home, away_team: g.away, home_score: g.home_score, away_score: g.away_score })
+      });
+      if (!res.ok) { const e = await res.json(); gdSetStatus(item, 'error', e.error); return; }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      gdSetStatus(item, 'ok');
+      gdShowImg(item, url, `${g.home} VS ${g.away} ${league}.png`);
+    } catch(e) { gdSetStatus(item, 'error', e.message); }
+  } else {
+    const item = gdAddResultItem(results, `${games.length} partidos — ${league}`);
+    gdSetStatus(item, 'loading');
+    try {
+      const res = await fetch(FLASK_URL + '/api/generate-batch', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ league, games: games.map(g => ({ home: g.home, away: g.away, home_score: g.home_score, away_score: g.away_score })) })
+      });
+      if (!res.ok) { const e = await res.json(); gdSetStatus(item, 'error', e.error); return; }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      gdSetStatus(item, 'ok', `${games.length} gráficos`);
+      gdAddDownload(item, url, `Marcadores_${league.replace(/ /g,'_')}.zip`);
+    } catch(e) { gdSetStatus(item, 'error', e.message); }
+  }
+}
+
+async function _gdGenBasketball(g, league, results) {
+  const item = gdAddResultItem(results, `${g.home} VS ${g.away} — 4 gráficos`);
+  gdSetStatus(item, 'loading');
+  try {
+    const res = await fetch(FLASK_URL + '/api/generate-basketball-quarters', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ league, home_team: g.home, away_team: g.away, home_quarters: g.home_quarters, away_quarters: g.away_quarters })
+    });
+    if (!res.ok) { const e = await res.json(); gdSetStatus(item, 'error', e.error); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    gdSetStatus(item, 'ok', '4 gráficos (1C→FINAL)');
+    gdAddDownload(item, url, `${g.home} VS ${g.away} ${league}.zip`);
+  } catch(e) { gdSetStatus(item, 'error', e.message); }
+}
+
+// ── Missing logos ──
+async function gdCheckAndShowMissing(games, league) {
+  const teams = [...new Set(games.flatMap(g => [g.home, g.away]))];
+  try {
+    const res = await fetch(FLASK_URL + '/api/check-logos', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ league, teams })
+    });
+    const data = await res.json();
+    const missing = (data.results || []).filter(r => !r.found);
+    if (!missing.length) return;
+
+    // Load available logo files
+    try {
+      const r2 = await fetch(FLASK_URL + `/api/logo-files/${encodeURIComponent(league)}`);
+      const d2 = await r2.json();
+      gdLogoFiles = d2.files || [];
+    } catch(e) { gdLogoFiles = []; }
+
+    gdRenderMissing(missing);
+  } catch(e) {}
+}
+
+function gdRenderMissing(missing) {
+  const list = document.getElementById('gd-missing-list');
+  list.innerHTML = '';
+  const opts = gdLogoFiles.map(f => `<option value="${f}">`).join('');
+
+  missing.forEach(m => {
+    const safeId = m.team.replace(/[^a-zA-Z0-9]/g,'_');
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+    div.innerHTML = `
+      <span style="flex:1;min-width:140px;font-size:12px;font-weight:600;color:var(--t-0)">${m.team}</span>
+      <span style="color:var(--t-2);font-size:12px">→</span>
+      <input class="finput" type="text" id="gd-alias-${safeId}" placeholder="Nombre del archivo" list="gd-af-${safeId}" autocomplete="off" style="flex:2;min-width:180px">
+      <datalist id="gd-af-${safeId}">${opts}</datalist>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('gd-missing').style.display = 'block';
+}
+
+async function gdSaveAliasesAndRegen() {
+  const league = document.getElementById('gd-league').value;
+  const saves  = [];
+  document.querySelectorAll('#gd-missing-list > div').forEach(row => {
+    const team  = row.querySelector('span')?.textContent.trim();
+    const alias = row.querySelector('input[type=text]')?.value.trim();
+    if (team && alias) saves.push({ team_name: team, alias });
+  });
+  if (!saves.length) { toast('⚠️ Escribí al menos un alias'); return; }
+
+  for (const s of saves) {
+    await fetch(FLASK_URL + '/api/save-alias', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ league, team_name: s.team_name, alias: s.alias })
+    });
+  }
+
+  document.getElementById('gd-missing').style.display = 'none';
+  document.getElementById('gd-results').innerHTML = '';
+
+  const sport   = gdLeagueInfo[league]?.sport || 'football';
+  const results = document.getElementById('gd-results');
+  if (sport === 'basketball') {
+    for (const g of gdLastGames) await _gdGenBasketball(g, league, results);
+  } else {
+    await _gdGenFootball(gdLastGames, league, results);
+  }
+}
+
+// ── Result UI helpers ──
+function gdAddResultItem(container, name) {
+  const div = document.createElement('div');
+  div.style.cssText = 'background:var(--bg-3);border:1px solid var(--b-1);border-radius:var(--r-sm);padding:10px 14px;display:flex;flex-direction:column;gap:8px';
+  div.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:12px;font-weight:600">${name}</span><span class="gd-status"></span></div>`;
+  container.appendChild(div);
+  return div;
+}
+function gdSetStatus(item, state, msg) {
+  const s = item.querySelector('.gd-status');
+  if (state === 'loading') s.innerHTML = '<span style="font-size:11px;color:var(--t-2)">⏳ Generando…</span>';
+  else if (state === 'ok')   s.innerHTML = `<span style="font-size:11px;color:var(--green)">✓ ${msg || 'Listo'}</span>`;
+  else                        s.innerHTML = `<span style="font-size:11px;color:#e74c3c">✗ ${msg || 'Error'}</span>`;
+}
+function gdShowImg(item, url, filename) {
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:100%;border-radius:4px;cursor:pointer';
+  img.onclick = () => window.open(url);
+  item.appendChild(img);
+  gdAddDownload(item, url, filename);
+}
+function gdAddDownload(item, url, filename) {
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.className = 'btn btn-ghost btn-sm';
+  a.style.cssText = 'align-self:flex-start;font-size:11px';
+  a.textContent = `⬇ ${filename}`;
+  item.appendChild(a);
 }
 </script>
 

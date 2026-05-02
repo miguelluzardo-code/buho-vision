@@ -373,6 +373,10 @@
                 const homeLogo = document.getElementById('home-logo');
                 homeLogo.src = data.homeLogo;
                 homeLogo.style.display = 'block';
+                if (data.homeLogoSize) {
+                    homeLogo.style.width = data.homeLogoSize + 'px';
+                    homeLogo.style.height = data.homeLogoSize + 'px';
+                }
             }
 
             // Update away team logo
@@ -380,6 +384,10 @@
                 const awayLogo = document.getElementById('away-logo');
                 awayLogo.src = data.awayLogo;
                 awayLogo.style.display = 'block';
+                if (data.awayLogoSize) {
+                    awayLogo.style.width = data.awayLogoSize + 'px';
+                    awayLogo.style.height = data.awayLogoSize + 'px';
+                }
             }
 
             // Update league logo

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buho Vision — Marcadores</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card2: #222535;
+    --accent: #4f8ef7;
+    --accent2: #2ecc71;
+    --danger: #e74c3c;
+    --text: #e8eaf0;
+    --muted: #7b82a0;
+    --border: #2e3350;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+
+  header {
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    padding:16px 24px;
+    display:flex; align-items:center; gap:12px;
+    position:sticky; top:0; z-index:100;
+  }
+  header h1 { font-size:1.2rem; font-weight:700; }
+  header .owl { font-size:1.6rem; }
+  header a.back { margin-left:auto; color:var(--muted); text-decoration:none; font-size:.85rem; }
+  header a.back:hover { color:var(--text); }
+
+  .container { max-width:860px; margin:0 auto; padding:24px 16px 60px; }
+
+  /* LEAGUE SELECTOR */
+  .section-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:10px; }
+
+  .leagues-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-bottom:24px;
+  }
+  .league-btn {
+    background:var(--card); border:2px solid var(--border); border-radius:var(--radius);
+    padding:10px 8px; text-align:center; cursor:pointer; transition:.15s;
+    font-size:.8rem; font-weight:600; color:var(--muted);
+  }
+  .league-btn:hover { border-color:var(--accent); color:var(--text); }
+  .league-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,.08); }
+  .league-btn .emoji { font-size:1.4rem; display:block; margin-bottom:4px; }
+
+  /* FORM CARD */
+  .form-card {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; margin-bottom:16px; position:relative;
+  }
+  .game-row {
+    display:grid; gap:10px;
+    grid-template-columns:1fr auto auto auto 1fr;
+    align-items:center;
+  }
+  .game-row.basketball-mode {
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media(max-width:600px) {
+    .game-row { grid-template-columns:1fr; }
+    .game-row.basketball-mode { grid-template-columns:1fr; }
+    .vs-divider { display:none; }
+  }
+
+  input[type=text], input[type=number], select {
+    background:var(--card2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:10px 12px; font-size:.95rem; width:100%;
+    outline:none; transition:.15s;
+  }
+  input:focus, select:focus { border-color:var(--accent); }
+  input::placeholder { color:var(--muted); }
+
+  .score-input {
+    width:70px; text-align:center; font-size:1.4rem; font-weight:700;
+    padding:10px 6px;
+  }
+  .vs-divider { color:var(--muted); font-weight:700; font-size:1.1rem; text-align:center; }
+
+  /* BASKETBALL QUARTERS */
+  .bball-team { }
+  .bball-team label { font-size:.75rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px; }
+  .quarters-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:8px; }
+  .q-label { font-size:.7rem; color:var(--muted); text-align:center; margin-bottom:3px; }
+  .q-input { text-align:center; font-size:1.1rem; font-weight:700; padding:8px 4px; }
+
+  .remove-btn {
+    position:absolute; top:10px; right:12px;
+    background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem;
+    line-height:1;
+  }
+  .remove-btn:hover { color:var(--danger); }
+
+  /* BUTTONS */
+  .btn {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 22px; border-radius:8px; border:none;
+    font-size:.9rem; font-weight:700; cursor:pointer; transition:.15s; text-decoration:none;
+  }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#3a7ce0; }
+  .btn-success { background:var(--accent2); color:#fff; }
+  .btn-success:hover { background:#27ae60; }
+  .btn-ghost { background:var(--card2); color:var(--text); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--accent); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin:16px 0; }
+
+  /* RESULTS */
+  #results { margin-top:24px; }
+  .result-item {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:16px;
+    flex-wrap:wrap;
+  }
+  .result-item img { max-width:100%; border-radius:6px; border:1px solid var(--border); }
+  .result-img-wrap { width:100%; }
+  .result-name { font-weight:600; font-size:.9rem; color:var(--text); flex:1; min-width:200px; }
+  .result-status { font-size:.8rem; }
+  .status-ok { color:var(--accent2); }
+  .status-err { color:var(--danger); }
+
+  /* LOADING */
+  .spinner {
+    width:22px; height:22px; border:3px solid rgba(255,255,255,.2);
+    border-top-color:var(--accent); border-radius:50%;
+    animation:spin .7s linear infinite; flex-shrink:0;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .mode-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .hidden { display:none !important; }
+  .loading-msg { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:.9rem; padding:16px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="owl">🦉</span>
+  <h1>Buho Vision — Marcadores</h1>
+  <a href="/" class="back">← Volver</a>
+</header>
+
+<div class="container">
+
+  <!-- LEAGUE SELECTOR -->
+  <div class="section-title">Seleccioná la liga</div>
+  <div class="leagues-grid" id="leaguesGrid">
+    <div class="loading-msg"><div class="spinner"></div> Cargando ligas...</div>
+  </div>
+
+  <!-- GAMES FORM (hidden until league selected) -->
+  <div id="formSection" class="hidden">
+    <div class="section-title" id="formTitle">Partidos</div>
+
+    <!-- MODE TABS -->
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="btn btn-ghost mode-tab active" id="tab-manual" onclick="switchMode('manual')">✏️ Escribir</button>
+      <button class="btn btn-ghost mode-tab" id="tab-screenshot" onclick="switchMode('screenshot')">📸 Screenshot</button>
+    </div>
+
+    <!-- MANUAL MODE -->
+    <div id="mode-manual">
+      <div id="gamesContainer"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="addGame()">+ Agregar partido</button>
+        <button class="btn btn-success" id="generateBtn" onclick="generateAll()">
+          ⚡ Generar marcadores
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREENSHOT MODE -->
+    <div id="mode-screenshot" class="hidden">
+      <div class="form-card" id="dropzone"
+        style="border:2px dashed var(--border);text-align:center;cursor:pointer;padding:40px 20px;"
+        onclick="document.getElementById('imgInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="handleDrop(event)">
+        <div style="font-size:3rem;">📸</div>
+        <div style="margin-top:12px;font-weight:700;">Subí la foto / captura de pantalla</div>
+        <div style="color:var(--muted);font-size:.85rem;margin-top:6px;">Tocá aquí o arrastrá la imagen</div>
+        <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+      <div id="imgPreviewWrap" class="hidden" style="margin-top:16px;">
+        <img id="imgPreview" style="max-width:100%;border-radius:8px;border:1px solid var(--border);">
+        <div class="actions" style="margin-top:12px;">
+          <button class="btn btn-primary" id="parseBtn" onclick="parseImage()">🔍 Detectar resultados</button>
+          <button class="btn btn-ghost" onclick="clearImage()">✕ Cambiar imagen</button>
+        </div>
+      </div>
+      <div id="parseLoading" class="loading-msg hidden"><div class="spinner"></div> Analizando imagen con IA...</div>
+      <!-- Detected games to confirm -->
+      <div id="detectedGames" class="hidden" style="margin-top:16px;">
+        <div class="section-title">Resultados detectados — revisá y confirmá</div>
+        <div id="detectedList"></div>
+        <div class="actions" style="margin-top:8px;">
+          <button class="btn btn-success" id="generateBtnShot" onclick="generateAll()">⚡ Generar marcadores</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results"></div>
+
+  <!-- MISSING LOGOS PANEL -->
+  <div id="missingPanel" class="hidden" style="margin-top:16px;">
+    <div class="form-card" style="border-color:#f39c12;">
+      <div style="font-size:.75rem;color:#f39c12;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;">
+        ⚠️ Escudos faltantes — asigná el archivo y regenerá
+      </div>
+      <div id="missingList"></div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn btn-primary" onclick="saveAliasesAndRegenerate()">💾 Guardar y regenerar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────
+let selectedLeague = null;
+let leagueInfo = {};
+let teamsList = [];
+let gameCount = 0;
+let currentMode = 'manual';
+let detectedGames = [];  // from screenshot OCR
+
+// ─── INIT ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadLeagues);
+
+async function loadLeagues() {
+  try {
+    const res = await fetch('/api/leagues');
+    const data = await res.json();
+    renderLeagues(data.leagues || []);
+  } catch(e) {
+    document.getElementById('leaguesGrid').innerHTML = '<span style="color:var(--danger)">Error cargando ligas</span>';
+  }
+}
+
+function renderLeagues(leagues) {
+  const grid = document.getElementById('leaguesGrid');
+  if (!leagues.length) { grid.innerHTML = '<span>No hay ligas configuradas</span>'; return; }
+  grid.innerHTML = '';
+  leagues.forEach(l => {
+    leagueInfo[l.name] = l;
+    const btn = document.createElement('div');
+    btn.className = 'league-btn';
+    btn.dataset.name = l.name;
+    btn.innerHTML = `<span class="emoji">${l.emoji || '⚽'}</span>${l.name}`;
+    btn.addEventListener('click', () => selectLeague(l.name));
+    grid.appendChild(btn);
+  });
+}
+
+async function selectLeague(name) {
+  selectedLeague = name;
+  document.querySelectorAll('.league-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.name === name);
+  });
+
+  // Load teams
+  try {
+    const res = await fetch(`/api/teams/${encodeURIComponent(name)}`);
+    const data = await res.json();
+    teamsList = (data.teams || []).map(t => t.name || t);
+  } catch(e) {
+    teamsList = [];
+  }
+
+  // Show form
+  const isBasketball = (leagueInfo[name]?.sport === 'basketball');
+  document.getElementById('formTitle').textContent = `Partidos — ${name}`;
+  document.getElementById('formSection').classList.remove('hidden');
+  document.getElementById('results').innerHTML = '';
+
+  // Reset games
+  document.getElementById('gamesContainer').innerHTML = '';
+  gameCount = 0;
+  addGame();
+}
+
+// ─── GAME FORM ────────────────────────────────
+function addGame() {
+  const id = ++gameCount;
+  const isBasketball = leagueInfo[selectedLeague]?.sport === 'basketball';
+  const container = document.getElementById('gamesContainer');
+  const div = document.createElement('div');
+  div.className = 'form-card';
+  div.id = `game-${id}`;
+
+  if (isBasketball) {
+    div.innerHTML = `
+      <button class="remove-btn" onclick="removeGame(${id})" title="Eliminar">✕</button>
+      <div style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Partido ${id}</div>
+      <div class="game-row basketball-mode">
+        <div class="bball-team">
+          <label>Local</label>
+          <input type="text" id="home-name-${id}" placeholder="Equipo local" list="teams-list-${id}" autocomplete="off">
+          <datalist id="teams-list-${id}">${teamsList.map(t=>`<option value="${t}">`).join('')}</datalist>
+          <div class="quarters-grid" style="margin-top:10px">
+            <div><div class="q-label">1C</div><input type="number" class="q-input" id="hq1-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">2C</div><input type="number" class="q-input" id="hq2-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">3C</div><input type="number" class="q-input" id="hq3-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">4C</div><input type="number" class="q-input" id="hq4-${id}" min="0" placeholder="0"></div>
+          </div>
+        </div>
+        <div class="bball-team">
+          <label>Visitante</label>
+          <input type="text" id="away-name-${id}" placeholder="Equipo visitante" list="teams-list2-${id}" autocomplete="off">
+          <datalist id="teams-list2-${id}">${teamsList.map(t=>`<option value="${t}">`).join('')}</datalist>
+          <div class="quarters-grid" style="margin-top:10px">
+            <div><div class="q-label">1C</div><input type="number" class="q-input" id="aq1-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">2C</div><input type="number" class="q-input" id="aq2-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">3C</div><input type="number" class="q-input" id="aq3-${id}" min="0" placeholder="0"></div>
+            <div><div class="q-label">4C</div><input type="number" class="q-input" id="aq4-${id}" min="0" placeholder="0"></div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <button class="remove-btn" onclick="removeGame(${id})" title="Eliminar">✕</button>
+      <div style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Partido ${id}</div>
+      <div class="game-row">
+        <input type="text" id="home-name-${id}" placeholder="Equipo local" list="teams-list-${id}" autocomplete="off">
+        <datalist id="teams-list-${id}">${teamsList.map(t=>`<option value="${t}">`).join('')}</datalist>
+        <input type="number" class="score-input" id="home-score-${id}" min="0" value="0" placeholder="0">
+        <div class="vs-divider">—</div>
+        <input type="number" class="score-input" id="away-score-${id}" min="0" value="0" placeholder="0">
+        <input type="text" id="away-name-${id}" placeholder="Equipo visitante" list="teams-list2-${id}" autocomplete="off">
+        <datalist id="teams-list2-${id}">${teamsList.map(t=>`<option value="${t}">`).join('')}</datalist>
+      </div>`;
+  }
+
+  container.appendChild(div);
+  div.querySelector(`#home-name-${id}`)?.focus();
+}
+
+function removeGame(id) {
+  const el = document.getElementById(`game-${id}`);
+  if (el) el.remove();
+}
+
+// ─── MODE SWITCH ─────────────────────────────
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-manual').classList.toggle('hidden', mode !== 'manual');
+  document.getElementById('mode-screenshot').classList.toggle('hidden', mode !== 'screenshot');
+  document.getElementById('tab-manual').classList.toggle('active', mode === 'manual');
+  document.getElementById('tab-screenshot').classList.toggle('active', mode === 'screenshot');
+}
+
+// ─── SCREENSHOT / OCR ────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImageFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadImageFile(file);
+}
+function loadImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('imgPreview').src = ev.target.result;
+    document.getElementById('imgPreviewWrap').classList.remove('hidden');
+    document.getElementById('dropzone').classList.add('hidden');
+    document.getElementById('detectedGames').classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+function clearImage() {
+  document.getElementById('imgPreview').src = '';
+  document.getElementById('imgPreviewWrap').classList.add('hidden');
+  document.getElementById('dropzone').classList.remove('hidden');
+  document.getElementById('imgInput').value = '';
+  document.getElementById('detectedGames').classList.add('hidden');
+}
+
+async function parseImage() {
+  const imgSrc = document.getElementById('imgPreview').src;
+  if (!imgSrc) return;
+
+  document.getElementById('parseBtn').disabled = true;
+  document.getElementById('parseLoading').classList.remove('hidden');
+  document.getElementById('detectedGames').classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/parse-image', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({image: imgSrc})
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Error: ' + (data.error || 'No se pudo analizar')); return; }
+    renderDetectedGames(data.games || []);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    document.getElementById('parseBtn').disabled = false;
+    document.getElementById('parseLoading').classList.add('hidden');
+  }
+}
+
+function renderDetectedGames(games) {
+  detectedGames = games;
+  const list = document.getElementById('detectedList');
+  const isBasketball = leagueInfo[selectedLeague]?.sport === 'basketball';
+  list.innerHTML = '';
+
+  if (!games.length) {
+    list.innerHTML = '<div style="color:var(--muted);padding:12px 0">No se detectaron resultados. Intentá con otra imagen.</div>';
+    document.getElementById('detectedGames').classList.remove('hidden');
+    return;
+  }
+
+  games.forEach((g, i) => {
+    const div = document.createElement('div');
+    div.className = 'form-card';
+    div.style.marginBottom = '10px';
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <input type="text" value="${g.home}" id="det-home-${i}" style="flex:1;min-width:140px" placeholder="Local">
+        <input type="number" value="${g.home_score||0}" id="det-hs-${i}" class="score-input" min="0" style="width:60px">
+        <span style="color:var(--muted);font-weight:700">—</span>
+        <input type="number" value="${g.away_score||0}" id="det-as-${i}" class="score-input" min="0" style="width:60px">
+        <input type="text" value="${g.away}" id="det-away-${i}" style="flex:1;min-width:140px" placeholder="Visitante">
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem" onclick="this.closest('.form-card').remove()">✕</button>
+      </div>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('detectedGames').classList.remove('hidden');
+}
+
+// ─── GENERATE ────────────────────────────────
+async function generateAll() {
+  const isBasketball = leagueInfo[selectedLeague]?.sport === 'basketball';
+  const games = collectGames(isBasketball);
+  if (!games.length) { alert('Completá al menos un partido'); return; }
+
+  const btnId = currentMode === 'screenshot' ? 'generateBtnShot' : 'generateBtn';
+  const btn = document.getElementById(btnId);
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Generando...';
+
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+
+  if (isBasketball) {
+    for (const g of games) {
+      await generateBasketball(g, results);
+    }
+  } else {
+    await generateFootball(games, results);
+  }
+
+  // Verificar escudos faltantes y mostrar panel de fix
+  await checkAndShowMissing(games);
+
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Generar marcadores';
+  const btnId2 = currentMode === 'screenshot' ? 'generateBtnShot' : 'generateBtn';
+  document.getElementById(btnId2).disabled = false;
+  document.getElementById(btnId2).innerHTML = '⚡ Generar marcadores';
+}
+
+function collectGames(isBasketball) {
+  if (currentMode === 'screenshot') {
+    // Read from detected games form
+    const games = [];
+    document.querySelectorAll('#detectedList .form-card').forEach((el, i) => {
+      const home = document.getElementById(`det-home-${i}`)?.value.trim();
+      const away = document.getElementById(`det-away-${i}`)?.value.trim();
+      const hs = document.getElementById(`det-hs-${i}`)?.value || '0';
+      const as_ = document.getElementById(`det-as-${i}`)?.value || '0';
+      if (home && away) games.push({ home, away, home_score: hs, away_score: as_ });
+    });
+    return games;
+  }
+
+  const games = [];
+  document.querySelectorAll('[id^="game-"]').forEach(el => {
+    const id = el.id.replace('game-','');
+    const home = document.getElementById(`home-name-${id}`)?.value.trim();
+    const away = document.getElementById(`away-name-${id}`)?.value.trim();
+    if (!home || !away) return;
+
+    if (isBasketball) {
+      const hq = [1,2,3,4].map(q => parseInt(document.getElementById(`hq${q}-${id}`)?.value)||0);
+      const aq = [1,2,3,4].map(q => parseInt(document.getElementById(`aq${q}-${id}`)?.value)||0);
+      games.push({ home, away, home_quarters: hq, away_quarters: aq });
+    } else {
+      const hs = document.getElementById(`home-score-${id}`)?.value || '0';
+      const as_ = document.getElementById(`away-score-${id}`)?.value || '0';
+      games.push({ home, away, home_score: hs, away_score: as_ });
+    }
+  });
+  return games;
+}
+
+async function generateFootball(games, results) {
+  // Single game → preview image; multiple → ZIP
+  if (games.length === 1) {
+    const g = games[0];
+    const item = addResultItem(results, `${g.home} VS ${g.away}`);
+    setStatus(item, 'loading');
+    try {
+      const res = await fetch('/api/generate-graphic', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ league: selectedLeague, home_team: g.home, away_team: g.away, home_score: g.home_score, away_score: g.away_score })
+      });
+      if (!res.ok) { const e = await res.json(); setStatus(item, 'error', e.error); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setStatus(item, 'ok');
+      showPreviewAndDownload(item, url, `${g.home} VS ${g.away} ${selectedLeague}.png`);
+    } catch(e) { setStatus(item, 'error', e.message); }
+  } else {
+    const item = addResultItem(results, `${games.length} partidos — ${selectedLeague}`);
+    setStatus(item, 'loading');
+    try {
+      const res = await fetch('/api/generate-batch', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ league: selectedLeague, games: games.map(g => ({home:g.home,away:g.away,home_score:g.home_score,away_score:g.away_score})) })
+      });
+      if (!res.ok) { const e = await res.json(); setStatus(item, 'error', e.error); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setStatus(item, 'ok', `${games.length} gráficos generados`);
+      addDownloadBtn(item, url, `Marcadores_${selectedLeague.replace(/ /g,'_')}.zip`);
+    } catch(e) { setStatus(item, 'error', e.message); }
+  }
+}
+
+async function generateBasketball(g, results) {
+  const item = addResultItem(results, `${g.home} VS ${g.away} — 4 gráficos`);
+  setStatus(item, 'loading');
+  try {
+    const res = await fetch('/api/generate-basketball-quarters', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ league: selectedLeague, home_team: g.home, away_team: g.away, home_quarters: g.home_quarters, away_quarters: g.away_quarters })
+    });
+    if (!res.ok) { const e = await res.json(); setStatus(item, 'error', e.error); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    setStatus(item, 'ok', '4 gráficos (1C, 2C, 3C, FINAL) generados');
+    addDownloadBtn(item, url, `${g.home} VS ${g.away} ${selectedLeague}.zip`);
+  } catch(e) { setStatus(item, 'error', e.message); }
+}
+
+// ─── MISSING LOGOS ───────────────────────────
+let logoFiles = [];
+let lastGames = [];
+
+async function loadLogoFiles() {
+  try {
+    const res = await fetch(`/api/logo-files/${encodeURIComponent(selectedLeague)}`);
+    const data = await res.json();
+    logoFiles = data.files || [];
+  } catch(e) { logoFiles = []; }
+}
+
+async function checkAndShowMissing(games) {
+  const teams = [...new Set(games.flatMap(g => [g.home, g.away]))];
+  try {
+    const res = await fetch('/api/check-logos', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ league: selectedLeague, teams })
+    });
+    const data = await res.json();
+    const missing = (data.results || []).filter(r => !r.found);
+    if (missing.length) {
+      await loadLogoFiles();
+      renderMissingPanel(missing);
+      lastGames = games;
+    } else {
+      document.getElementById('missingPanel').classList.add('hidden');
+    }
+  } catch(e) {}
+}
+
+function renderMissingPanel(missing) {
+  const list = document.getElementById('missingList');
+  list.innerHTML = '';
+  missing.forEach(m => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;';
+    div.innerHTML = `
+      <span style="flex:1;min-width:160px;font-weight:600;">${m.team}</span>
+      <span style="color:var(--muted);font-size:.85rem;">→</span>
+      <input type="text" id="alias-${m.team.replace(/\s/g,'_')}"
+        placeholder="Nombre del archivo (sin extensión)"
+        list="alias-files-${m.team.replace(/\s/g,'_')}"
+        style="flex:2;min-width:200px;"
+        autocomplete="off">
+      <datalist id="alias-files-${m.team.replace(/\s/g,'_')}">
+        ${logoFiles.map(f => `<option value="${f}">`).join('')}
+      </datalist>`;
+    list.appendChild(div);
+  });
+  document.getElementById('missingPanel').classList.remove('hidden');
+}
+
+async function saveAliasesAndRegenerate() {
+  const rows = document.querySelectorAll('#missingList > div');
+  const saves = [];
+  rows.forEach(row => {
+    const teamEl = row.querySelector('span');
+    const inputEl = row.querySelector('input[type=text]');
+    if (!teamEl || !inputEl) return;
+    const team = teamEl.textContent.trim();
+    const alias = inputEl.value.trim();
+    if (alias) saves.push({ team_name: team, alias });
+  });
+
+  if (!saves.length) { alert('Escribí al menos un alias'); return; }
+
+  // Guardar todos los aliases
+  for (const s of saves) {
+    await fetch('/api/save-alias', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ league: selectedLeague, team_name: s.team_name, alias: s.alias })
+    });
+  }
+
+  document.getElementById('missingPanel').classList.add('hidden');
+  document.getElementById('results').innerHTML = '';
+
+  // Regenerar
+  const isBasketball = leagueInfo[selectedLeague]?.sport === 'basketball';
+  if (isBasketball) {
+    for (const g of lastGames) await generateBasketball(g, document.getElementById('results'));
+  } else {
+    await generateFootball(lastGames, document.getElementById('results'));
+  }
+}
+
+// ─── RESULT UI HELPERS ────────────────────────
+function addResultItem(container, name) {
+  const div = document.createElement('div');
+  div.className = 'result-item';
+  div.innerHTML = `<span class="result-name">${name}</span><span class="result-status"></span>`;
+  container.appendChild(div);
+  return div;
+}
+function setStatus(item, state, msg) {
+  const s = item.querySelector('.result-status');
+  if (state === 'loading') {
+    s.innerHTML = '<div class="spinner"></div>';
+  } else if (state === 'ok') {
+    s.innerHTML = `<span class="status-ok">✓ ${msg || 'Generado'}</span>`;
+  } else {
+    s.innerHTML = `<span class="status-err">✗ ${msg || 'Error'}</span>`;
+  }
+}
+function showPreviewAndDownload(item, url, filename) {
+  const wrap = document.createElement('div');
+  wrap.className = 'result-img-wrap';
+  const img = document.createElement('img');
+  img.src = url;
+  wrap.appendChild(img);
+  item.appendChild(wrap);
+  addDownloadBtn(item, url, filename);
+}
+function addDownloadBtn(item, url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.className = 'btn btn-ghost';
+  a.style.marginTop = '8px';
+  a.textContent = '⬇ Descargar';
+  item.appendChild(a);
+}
+</script>
+</body>
+</html>

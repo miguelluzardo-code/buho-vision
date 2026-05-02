@@ -1,0 +1,18 @@
+# No incluir logos (van en Firebase Storage)
+1_Data_Input/
+1_Video_Download/
+3_Video_Processing/
+4_YouTube_Upload/
+5_Production_Calendar/
+deploy_public/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+*.zip
+*.mp4
+*.mov
+DAILY_VIDEO_CHECK/
+ORGANIZACION_SEMANAL/
+upload_logos_to_firebase.py

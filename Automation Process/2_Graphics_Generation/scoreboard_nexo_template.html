@@ -53,26 +53,44 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.25);
         }
 
-        /* ========== TEAM LOGOS - Large, filling the sides ========== */
-        .team-logo {
+        /* ========== TEAM NAMES - Company names filling the sides ========== */
+        .team-name-block {
             position: absolute;
             top: 10px;
             height: 120px;
-            object-fit: contain;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            width: 620px;
+            display: flex;
+            align-items: center;
             z-index: 15;
         }
 
-        .team-logo.home {
+        .team-name-block.home {
             left: 60px;
-            width: 640px;
-            object-position: left center;
+            justify-content: flex-start;
         }
 
-        .team-logo.away {
+        .team-name-block.away {
             right: 60px;
-            width: 640px;
-            object-position: right center;
+            justify-content: flex-end;
+        }
+
+        .team-name-block .company-name {
+            font-size: 68px;
+            font-weight: 900;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            line-height: 0.9;
+            text-align: left;
+            max-width: 100%;
+        }
+
+        .team-name-block .company-name span {
+            display: block;
+        }
+
+        .team-name-block.away .company-name {
+            text-align: right;
         }
 
         /* ========== CENTER SECTION ========== */
@@ -180,11 +198,15 @@
         <!-- Main gray bar -->
         <div class="main-bar"></div>
 
-        <!-- Home logo -->
-        <img class="team-logo home" id="home-logo" src="" alt="" style="display:none;">
+        <!-- Home team name -->
+        <div class="team-name-block home">
+            <div class="company-name" id="home-name"></div>
+        </div>
 
-        <!-- Away logo -->
-        <img class="team-logo away" id="away-logo" src="" alt="" style="display:none;">
+        <!-- Away team name -->
+        <div class="team-name-block away">
+            <div class="company-name" id="away-name"></div>
+        </div>
 
         <!-- Center group with scores and logo -->
         <div class="center-group">
@@ -210,6 +232,14 @@
 
     <script>
         function updateScoreboard(data) {
+            // Update team names (use | as explicit line break)
+            function renderName(el, name) {
+                const parts = name.split('~');
+                el.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+            }
+            renderName(document.getElementById('home-name'), data.homeTeam);
+            renderName(document.getElementById('away-name'), data.awayTeam);
+
             // Update scores
             const homeScoreEl = document.getElementById('home-score');
             const awayScoreEl = document.getElementById('away-score');
@@ -225,20 +255,6 @@
                 awayScoreEl.classList.remove('penalty');
             }
 
-            // Update home logo
-            if (data.homeLogo) {
-                const homeLogo = document.getElementById('home-logo');
-                homeLogo.src = data.homeLogo;
-                homeLogo.style.display = 'block';
-            }
-
-            // Update away logo
-            if (data.awayLogo) {
-                const awayLogo = document.getElementById('away-logo');
-                awayLogo.src = data.awayLogo;
-                awayLogo.style.display = 'block';
-            }
-
             // Update league logo
             if (data.leagueLogo) {
                 document.getElementById('league-logo').src = data.leagueLogo;
@@ -246,12 +262,10 @@
         }
 
         const testData = {
-            homeTeam: '',
-            awayTeam: '',
+            homeTeam: 'SANCOR SEGUROS',
+            awayTeam: 'HORMIGONES URUGUAY',
             homeScore: '2',
             awayScore: '1',
-            homeLogo: '',
-            awayLogo: '',
             leagueLogo: ''
         };
 

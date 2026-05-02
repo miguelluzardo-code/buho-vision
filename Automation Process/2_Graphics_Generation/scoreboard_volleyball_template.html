@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Volleyball Scoreboard - Buho Vision</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial Black', 'Arial', sans-serif;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .scoreboard-wrapper {
+            width: fit-content;
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+        }
+
+        /* ===== COLUMN HEADERS ===== */
+        .set-headers {
+            background: linear-gradient(180deg, #1a2a50 0%, #111d3a 100%);
+            display: grid;
+            grid-template-columns: 65px 310px 110px 110px 110px 110px 110px 180px 90px;
+            border-bottom: 1px solid #2a3a6a;
+        }
+
+        .set-header-cell {
+            padding: 9px 4px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #7a9acc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-left: 1px solid #252f50;
+        }
+
+        .set-header-cell:first-child,
+        .set-header-cell:nth-child(2) {
+            border-left: none;
+        }
+
+        /* ===== MAIN BODY - uses CSS Grid for 2 rows + league column ===== */
+        .body-grid {
+            display: grid;
+            /* cols: logo | name | s1 | s2 | s3 | s4 | s5 | league | sets */
+            grid-template-columns: 65px 310px 110px 110px 110px 110px 110px 180px 90px;
+            grid-template-rows: 115px 115px;
+            background: linear-gradient(180deg, #0d1e3a 0%, #0a1830 100%);
+        }
+
+        /* League logo cell spans both rows */
+        .cell-league {
+            grid-column: 8;
+            grid-row: 1 / span 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #0a1628 0%, #0d1e38 100%);
+            border-left: 2px solid #2a3a6a;
+            padding: 12px;
+        }
+
+        .league-logo-img {
+            max-width: 155px;
+            max-height: 210px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.15)) drop-shadow(2px 2px 6px rgba(0,0,0,0.7));
+        }
+
+        .league-name-fallback {
+            font-size: 20px;
+            font-weight: 900;
+            color: #4a90d9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        /* ===== TEAM CELLS ===== */
+        .cell-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 6px;
+            background: linear-gradient(180deg, #0f2240 0%, #0a1830 100%);
+            border-bottom: 1px solid #1a2a4a;
+        }
+
+        .team-logo-img {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            border-radius: 50%;
+        }
+
+        .team-logo-placeholder {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a4a7a, #0d3060);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #2a5a9a;
+            flex-shrink: 0;
+        }
+
+        .team-logo-placeholder span {
+            font-size: 15px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .cell-name {
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            font-size: 36px;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            border-bottom: 1px solid #1a2a4a;
+        }
+
+        .cell-set {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: 900;
+            color: #c0d0e8;
+            border-left: 1px solid #1a2a4a;
+            border-bottom: 1px solid #1a2a4a;
+        }
+
+        .cell-set.won {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.07);
+        }
+
+        .cell-sets-won {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 58px;
+            font-weight: 900;
+            color: #cc2222;
+            border-left: 2px solid #2a3a6a;
+            border-bottom: 1px solid #1a2a4a;
+        }
+
+        .cell-sets-won.winner {
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255,215,0,0.35);
+        }
+
+        /* Remove bottom border from last row cells */
+        .row-away .cell-logo,
+        .row-away .cell-name,
+        .row-away .cell-set,
+        .row-away .cell-sets-won {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard-wrapper">
+
+        <!-- Column headers -->
+        <div class="set-headers">
+            <div class="set-header-cell"></div>
+            <div class="set-header-cell"></div>
+            <div class="set-header-cell">Set 1</div>
+            <div class="set-header-cell">Set 2</div>
+            <div class="set-header-cell">Set 3</div>
+            <div class="set-header-cell">Set 4</div>
+            <div class="set-header-cell">Set 5</div>
+            <div class="set-header-cell">Liga</div>
+            <div class="set-header-cell">Sets</div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="body-grid">
+
+            <!-- HOME ROW -->
+            <div class="cell-logo row-home">
+                <img class="team-logo-img" id="home-logo" src="" alt="" style="display:none;">
+                <div class="team-logo-placeholder" id="home-placeholder">
+                    <span id="home-initials">?</span>
+                </div>
+            </div>
+            <div class="cell-name row-home" id="home-name">LOCAL</div>
+            <div class="cell-set row-home" id="home-s1">-</div>
+            <div class="cell-set row-home" id="home-s2">-</div>
+            <div class="cell-set row-home" id="home-s3">-</div>
+            <div class="cell-set row-home" id="home-s4">-</div>
+            <div class="cell-set row-home" id="home-s5">-</div>
+            <!-- league spans both rows, defined below -->
+            <div class="cell-sets-won row-home" id="home-sets">0</div>
+
+            <!-- AWAY ROW -->
+            <div class="cell-logo row-away">
+                <img class="team-logo-img" id="away-logo" src="" alt="" style="display:none;">
+                <div class="team-logo-placeholder" id="away-placeholder">
+                    <span id="away-initials">?</span>
+                </div>
+            </div>
+            <div class="cell-name row-away" id="away-name">VISITANTE</div>
+            <div class="cell-set row-away" id="away-s1">-</div>
+            <div class="cell-set row-away" id="away-s2">-</div>
+            <div class="cell-set row-away" id="away-s3">-</div>
+            <div class="cell-set row-away" id="away-s4">-</div>
+            <div class="cell-set row-away" id="away-s5">-</div>
+            <div class="cell-sets-won row-away" id="away-sets">0</div>
+
+            <!-- LEAGUE LOGO - spans both rows via CSS grid -->
+            <div class="cell-league">
+                <img class="league-logo-img" id="league-logo" src="" alt="" style="display:none;">
+                <span class="league-name-fallback" id="league-name-fallback"></span>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function getInitials(name) {
+            return name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase();
+        }
+
+        function adjustNameSize(el) {
+            let size = 36;
+            el.style.fontSize = size + 'px';
+            while (el.scrollWidth > el.clientWidth && size > 18) {
+                size--;
+                el.style.fontSize = size + 'px';
+            }
+        }
+
+        function updateVolleyboard(data) {
+            const homeNameEl = document.getElementById('home-name');
+            const awayNameEl = document.getElementById('away-name');
+            homeNameEl.textContent = data.homeTeam;
+            awayNameEl.textContent = data.awayTeam;
+            setTimeout(() => { adjustNameSize(homeNameEl); adjustNameSize(awayNameEl); }, 50);
+
+            // Sets won
+            const homeSetsEl = document.getElementById('home-sets');
+            const awaySetsEl = document.getElementById('away-sets');
+            homeSetsEl.textContent = data.homeSets;
+            awaySetsEl.textContent = data.awaySets;
+            if (parseInt(data.homeSets) > parseInt(data.awaySets)) {
+                homeSetsEl.classList.add('winner');
+            } else {
+                awaySetsEl.classList.add('winner');
+            }
+
+            // Logos
+            if (data.homeLogo) {
+                document.getElementById('home-logo').src = data.homeLogo;
+                document.getElementById('home-logo').style.display = 'block';
+                document.getElementById('home-placeholder').style.display = 'none';
+            } else {
+                document.getElementById('home-initials').textContent = getInitials(data.homeTeam);
+            }
+            if (data.awayLogo) {
+                document.getElementById('away-logo').src = data.awayLogo;
+                document.getElementById('away-logo').style.display = 'block';
+                document.getElementById('away-placeholder').style.display = 'none';
+            } else {
+                document.getElementById('away-initials').textContent = getInitials(data.awayTeam);
+            }
+
+            // League logo
+            if (data.leagueLogo) {
+                document.getElementById('league-logo').src = data.leagueLogo;
+                document.getElementById('league-logo').style.display = 'block';
+                document.getElementById('league-name-fallback').style.display = 'none';
+            } else {
+                document.getElementById('league-name-fallback').textContent = data.leagueName || '';
+            }
+
+            // Set scores
+            for (let i = 0; i < 5; i++) {
+                const homeEl = document.getElementById(`home-s${i+1}`);
+                const awayEl = document.getElementById(`away-s${i+1}`);
+                if (i < data.sets.length) {
+                    const parts = data.sets[i].split('/');
+                    const h = parseInt(parts[0]);
+                    const a = parseInt(parts[1]);
+                    homeEl.textContent = h;
+                    awayEl.textContent = a;
+                    if (h > a) homeEl.classList.add('won');
+                    else awayEl.classList.add('won');
+                } else {
+                    homeEl.textContent = '-';
+                    awayEl.textContent = '-';
+                }
+            }
+        }
+
+        window.onload = () => updateVolleyboard({
+            homeTeam: 'AIRES PUROS B',
+            awayTeam: 'BOHEMIOS J',
+            homeSets: 2,
+            awaySets: 3,
+            homeLogo: '',
+            awayLogo: '',
+            leagueLogo: '',
+            leagueName: 'LIVOSUR',
+            sets: ['25/21', '25/23', '23/25', '21/25', '6/15']
+        });
+    </script>
+</body>
+</html>

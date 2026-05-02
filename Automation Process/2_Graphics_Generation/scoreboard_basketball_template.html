@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basketball Scoreboard - Buho Vision</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial Black', 'Arial', sans-serif;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .scoreboard-wrapper {
+            width: 1890px;
+            height: 220px;
+            position: relative;
+        }
+
+        /* ========== BASE LAYER - Blue border bar ========== */
+        .base-bar {
+            position: absolute;
+            bottom: 0;
+            left: 45px;
+            right: 45px;
+            height: 30px;
+            background: linear-gradient(180deg, #154a6e 0%, #0d3a54 100%);
+            clip-path: polygon(2.5% 0, 97.5% 0, 100% 100%, 0 100%);
+            z-index: 1;
+        }
+
+        /* ========== MAIN BODY - Gray sections ========== */
+        .main-bar {
+            position: absolute;
+            top: 3px;
+            left: 30px;
+            right: 30px;
+            height: 155px;
+            background: linear-gradient(180deg, #f5f5f5 0%, #e5e5e5 50%, #d8d8d8 100%);
+            border: 2px solid #a0a0a0;
+            clip-path: polygon(1.8% 0, 98.2% 0, 99.5% 100%, 0.5% 100%);
+            z-index: 2;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+
+        /* ========== CONTENT CONTAINER ========== */
+        .content-container {
+            position: absolute;
+            top: 3px;
+            left: 30px;
+            right: 30px;
+            height: 155px;
+            z-index: 20;
+        }
+
+        /* ========== LEFT TEAM SECTION ========== */
+        .left-team {
+            position: absolute;
+            left: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .left-team .team-name {
+            font-size: 38px;
+            font-weight: 900;
+            color: #000000;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+            line-height: 1.1;
+            max-width: 100%;
+            text-align: center;
+            word-break: keep-all;
+            white-space: normal;
+        }
+
+        /* ========== RIGHT TEAM SECTION ========== */
+        .right-team {
+            position: absolute;
+            right: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .right-team .team-name {
+            font-size: 38px;
+            font-weight: 900;
+            color: #000000;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+            line-height: 1.1;
+            max-width: 100%;
+            text-align: center;
+            word-break: keep-all;
+            white-space: normal;
+        }
+
+        /* ========== TEAM LOGOS NEXT TO SCORES ========== */
+        .team-logo {
+            position: absolute;
+            width: 135px;
+            height: 135px;
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));
+            z-index: 20;
+        }
+
+        .team-logo.home {
+            left: 50%;
+            top: 82px;
+            transform: translate(-368px, -50%);
+        }
+
+        .team-logo.away {
+            left: 50%;
+            top: 82px;
+            transform: translate(233px, -50%);
+        }
+
+        /* ========== CENTER SECTION ========== */
+        .center-group {
+            position: absolute;
+            left: 50%;
+            top: 82px;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            z-index: 15;
+        }
+
+        /* Score boxes - NOW SYMMETRIC */
+        .score-box {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            border: 2px solid #a0a0a0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .score-box.left {
+            clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
+            z-index: 16;
+        }
+
+        .score-box.right {
+            clip-path: polygon(0 0, 88% 0, 100% 100%, 12% 100%);
+            z-index: 16;
+        }
+
+        .score {
+            font-size: 85px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow:
+                2px 2px 4px rgba(0,0,0,0.9),
+                0 0 10px rgba(255,255,255,0.2);
+            letter-spacing: -4px;
+            line-height: 1;
+        }
+
+        /* Diamond with QUARTER indicator */
+        .diamond {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #0d4a6e 0%, #1a5a7e 50%, #0d4a6e 100%);
+            transform: rotate(45deg);
+            border: 2px solid #a0a0a0;
+            position: relative;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            z-index: 17;
+        }
+
+        /* White/gray accent inside diamond */
+        .diamond-inner {
+            position: absolute;
+            width: 95px;
+            height: 95px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 50%, #e8e8e8 100%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Quarter indicator wrapper */
+        .quarter-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85px;
+            height: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 13;
+        }
+
+        .quarter-text {
+            font-size: 56px;
+            font-weight: 900;
+            color: #000000;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
+            transform: rotate(-45deg);
+            letter-spacing: -2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard-wrapper">
+        <!-- Base blue bar -->
+        <div class="base-bar"></div>
+
+        <!-- Main gray bar -->
+        <div class="main-bar"></div>
+
+        <!-- Content container -->
+        <div class="content-container">
+            <!-- Left team name -->
+            <div class="left-team">
+                <div class="team-name" id="home-name">25 DE AGOSTO</div>
+            </div>
+
+            <!-- Right team name -->
+            <div class="right-team">
+                <div class="team-name" id="away-name">YALE</div>
+            </div>
+        </div>
+
+        <!-- Team logos (positioned in blue wedges) -->
+        <img class="team-logo home" id="home-logo" src="" alt="" style="display:none;">
+        <img class="team-logo away" id="away-logo" src="" alt="" style="display:none;">
+
+        <!-- Center group with scores and quarter -->
+        <div class="center-group">
+            <!-- Left score -->
+            <div class="score-box left">
+                <div class="score" id="home-score">12</div>
+            </div>
+
+            <!-- Diamond with quarter indicator -->
+            <div class="diamond">
+                <div class="diamond-inner"></div>
+                <div class="quarter-wrapper">
+                    <div class="quarter-text" id="quarter">1Q</div>
+                </div>
+            </div>
+
+            <!-- Right score -->
+            <div class="score-box right">
+                <div class="score" id="away-score">28</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+</body>
+</html>

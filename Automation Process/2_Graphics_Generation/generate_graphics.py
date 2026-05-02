@@ -90,27 +90,27 @@ class ScoreboardGenerator:
             team_name = team_aliases[team_name]
 
         # Try exact match first (check multiple extensions)
-        for ext in ['.png', '.jpg', '.jpeg']:
+        for ext in ['.png', '.jpg', '.jpeg', '.svg']:
             logo_file = self.logos_base / f"{team_name}{ext}"
             if logo_file.exists():
                 return str(logo_file).replace("\\", "/"), original_name
 
         # Try with underscores instead of spaces
         team_name_underscore = team_name.replace(" ", "_")
-        for ext in ['.png', '.jpg', '.jpeg']:
+        for ext in ['.png', '.jpg', '.jpeg', '.svg']:
             logo_file = self.logos_base / f"{team_name_underscore}{ext}"
             if logo_file.exists():
                 return str(logo_file).replace("\\", "/"), original_name
 
         # Try case-insensitive search
-        for ext in ['*.png', '*.jpg', '*.jpeg']:
+        for ext in ['*.png', '*.jpg', '*.jpeg', '*.svg']:
             for file in self.logos_base.glob(ext):
                 if file.stem.upper() == team_name.upper():
                     return str(file).replace("\\", "/"), original_name
 
         # Try normalized search (without accents) - handles RUSTICOS vs RÚSTICOS, COLON vs COLÓN
         team_normalized = self.normalize_text(team_name.upper())
-        for ext in ['*.png', '*.jpg', '*.jpeg']:
+        for ext in ['*.png', '*.jpg', '*.jpeg', '*.svg']:
             for file in self.logos_base.glob(ext):
                 file_normalized = self.normalize_text(file.stem.upper())
                 if file_normalized == team_normalized:
@@ -120,7 +120,7 @@ class ScoreboardGenerator:
         def simplify(s):
             return self.normalize_text(s.upper().replace(".", "").replace("_", " ").replace("  ", " ").strip())
         team_simple = simplify(team_name)
-        for ext in ['*.png', '*.jpg', '*.jpeg']:
+        for ext in ['*.png', '*.jpg', '*.jpeg', '*.svg']:
             for file in self.logos_base.glob(ext):
                 if simplify(file.stem) == team_simple:
                     return str(file).replace("\\", "/"), original_name
@@ -201,25 +201,26 @@ class ScoreboardGenerator:
                     try:
                         p = Path(path)
                         ext = p.suffix.lower().lstrip('.')
-                        mime = "image/png" if ext == "png" else f"image/{ext}"
+                        mime = "image/png" if ext == "png" else ("image/svg+xml" if ext == "svg" else f"image/{ext}")
                         with open(p, "rb") as f:
                             data = base64.b64encode(f.read()).decode("utf-8")
                         return f"data:{mime};base64,{data}"
                     except Exception:
                         return ""
 
+            league_config = self.config.get("leagues", {}).get(self.league_name, {})
+
             def to_data_url(path):
                 """Convert image file to base64 data URL for reliable browser loading"""
                 if not path or path == "PLACEHOLDER":
                     return ""
                 # Use trimming for Nexo template (logos need to fill large areas)
-                league_config = self.config.get("leagues", {}).get(self.league_name, {})
-                if league_config.get("trim_logos", False):
+                if self.config.get("leagues", {}).get(self.league_name, {}).get("trim_logos", False):
                     return trim_and_encode(path)
                 try:
                     p = Path(path)
                     ext = p.suffix.lower().lstrip('.')
-                    mime = "image/png" if ext == "png" else f"image/{ext}"
+                    mime = "image/png" if ext == "png" else ("image/svg+xml" if ext == "svg" else f"image/{ext}")
                     with open(p, "rb") as f:
                         data = base64.b64encode(f.read()).decode("utf-8")
                     return f"data:{mime};base64,{data}"
@@ -230,6 +231,7 @@ class ScoreboardGenerator:
             away_logo_url = to_data_url(away_logo) if away_logo != "PLACEHOLDER" else ""
             league_logo_url = to_data_url(league_logo) if league_logo else ""
 
+            size_overrides = league_config.get("logo_size_overrides", {})
             scoreboard_data = {
                 "homeTeam": display_home,
                 "awayTeam": display_away,
@@ -240,6 +242,8 @@ class ScoreboardGenerator:
                 "leagueLogo": league_logo_url,
                 "homePlaceholder": home_logo == "PLACEHOLDER",
                 "awayPlaceholder": away_logo == "PLACEHOLDER",
+                "homeLogoSize": size_overrides.get(game.home_team),
+                "awayLogoSize": size_overrides.get(game.away_team),
             }
 
             # Update the scoreboard with game data (pass as JSON arg to avoid injection)
@@ -249,8 +253,8 @@ class ScoreboardGenerator:
             await page.wait_for_timeout(500)
 
             # Generate output filename using display names (with correct accents)
-            home_safe = display_home.replace("/", "-")
-            away_safe = display_away.replace("/", "-")
+            home_safe = display_home.replace("/", "-").replace("~", " ")
+            away_safe = display_away.replace("/", "-").replace("~", " ")
             if game.divisional:
                 filename = f"{home_safe} VS {away_safe} {game.league} {game.divisional}.png"
             else:

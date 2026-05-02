@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Buho Vision - Ecosistema</title>
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #161616;
+  --surface2: #1e1e1e;
+  --surface3: #252525;
+  --border: #2a2a2a;
+  --text: #f0f0f0;
+  --text-muted: #888;
+  --accent: #4ade80;
+  --accent-dark: #22c55e;
+  --blue: #3b82f6;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --purple: #a855f7;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; font-family: -apple-system, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); }
+
+/* ── LOGIN ── */
+#login-overlay {
+  position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+}
+.login-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:48px 40px; width:min(420px,90vw); text-align:center;
+}
+.login-logo { height:80px; margin-bottom:16px; }
+.login-title { font-size:28px; font-weight:900; letter-spacing:3px; color:var(--accent); margin-bottom:6px; }
+.login-subtitle { color:var(--text-muted); font-size:14px; margin-bottom:32px; }
+.login-box input {
+  width:100%; padding:14px 16px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius); color:var(--text); font-size:16px; margin-bottom:12px;
+}
+.login-box input:focus { outline:none; border-color:var(--accent); }
+.login-btn {
+  width:100%; padding:14px; background:var(--accent); color:#000; border:none;
+  border-radius:var(--radius); font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;
+}
+.login-btn:hover { background:var(--accent-dark); }
+.login-greeting { font-size:20px; font-weight:700; color:var(--accent); margin-bottom:20px; }
+.login-change { color:var(--text-muted); font-size:13px; cursor:pointer; text-decoration:underline; margin-top:12px; display:inline-block; }
+
+/* ── LAYOUT ── */
+#app { display:flex; flex-direction:column; height:100vh; display:none; }
+
+/* ── HEADER ── */
+.header {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:0 20px; display:flex; align-items:center; gap:16px;
+  height:58px; flex-shrink:0; position:sticky; top:0; z-index:100;
+}
+.header-logo { height:36px; }
+.header-brand { font-size:16px; font-weight:800; letter-spacing:2px; color:var(--accent); }
+.header-tabs { display:flex; gap:4px; margin-left:12px; }
+.tab-btn {
+  padding:8px 16px; border-radius:8px; border:none; cursor:pointer;
+  font-size:13px; font-weight:600; color:var(--text-muted); background:transparent;
+  transition:all .2s; white-space:nowrap;
+}
+.tab-btn.active { background:var(--accent); color:#000; }
+.tab-btn:hover:not(.active) { background:var(--surface3); color:var(--text); }
+.header-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+.server-dot { width:8px; height:8px; border-radius:50%; background:var(--danger); flex-shrink:0; }
+.server-dot.online { background:var(--accent); }
+.server-status-text { font-size:12px; color:var(--text-muted); }
+.user-badge {
+  display:flex; align-items:center; gap:8px; padding:6px 12px;
+  background:var(--surface2); border-radius:8px; cursor:pointer;
+}
+.user-avatar {
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.user-name { font-size:13px; font-weight:600; }
+.logout-btn { color:var(--text-muted); font-size:12px; cursor:pointer; }
+.logout-btn:hover { color:var(--danger); }
+
+/* ── MAIN CONTENT ── */
+.main-content { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tab-panel { display:none; flex:1; overflow:auto; }
+.tab-panel.active { display:flex; flex-direction:column; }
+
+/* ── RESULTADOS TAB ── */
+.resultados-layout {
+  display:grid; grid-template-columns:300px 1fr 340px; gap:0;
+  flex:1; overflow:hidden; min-height:0;
+}
+.panel {
+  border-right:1px solid var(--border); overflow-y:auto; padding:20px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.panel:last-child { border-right:none; }
+.panel-title { font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; }
+
+.card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; display:flex; flex-direction:column; gap:12px;
+}
+.card-title { font-size:14px; font-weight:700; color:var(--text); }
+
+label { font-size:13px; color:var(--text-muted); display:block; margin-bottom:6px; }
+select, input[type=text], input[type=number], input[type=datetime-local], textarea {
+  width:100%; padding:10px 12px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:14px; appearance:none;
+}
+select:focus, input:focus, textarea:focus { outline:none; border-color:var(--accent); }
+select option { background:var(--surface2); }
+
+.btn {
+  padding:10px 18px; border:none; border-radius:8px; cursor:pointer;
+  font-size:13px; font-weight:700; transition:all .2s; display:inline-flex; align-items:center; gap:8px;
+}
+.btn-primary { background:var(--accent); color:#000; }
+.btn-primary:hover { background:var(--accent-dark); }
+.btn-secondary { background:var(--surface3); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--accent); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.btn-full { width:100%; justify-content:center; }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Score inputs */
+.score-row {
+  display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:end;
+}
+.score-input-group { text-align:center; }
+.score-input-group input[type=number] {
+  text-align:center; font-size:28px; font-weight:900; color:var(--accent);
+  padding:12px; height:60px;
+}
+.score-vs { font-size:24px; font-weight:900; color:var(--text-muted); text-align:center; padding-bottom:8px; }
+
+/* Team autocomplete */
+.autocomplete-wrap { position:relative; }
+.autocomplete-input { display:flex; align-items:center; gap:8px; }
+.team-logo-preview { width:32px; height:32px; border-radius:50%; object-fit:contain; background:var(--surface3); flex-shrink:0; }
+.autocomplete-input input { flex:1; }
+.dropdown-list {
+  position:absolute; top:100%; left:0; right:0; z-index:200;
+  background:var(--surface2); border:1px solid var(--accent); border-radius:8px;
+  max-height:200px; overflow-y:auto; display:none;
+}
+.dropdown-list.open { display:block; }
+.dropdown-item {
+  display:flex; align-items:center; gap:10px; padding:8px 12px; cursor:pointer;
+  font-size:13px; transition:background .1s;
+}
+.dropdown-item:hover { background:var(--surface3); }
+.dropdown-item img { width:24px; height:24px; object-fit:contain; border-radius:50%; }
+
+/* Partido card */
+.partido-card {
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px; display:flex; align-items:center; gap:10px;
+}
+.partido-teams { flex:1; display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; }
+.partido-score { font-size:20px; font-weight:900; color:var(--accent); text-align:center; min-width:60px; }
+.partido-logo { width:28px; height:28px; object-fit:contain; border-radius:50%; background:var(--surface3); }
+.partido-status { font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; }
+.status-pending { background:#f59e0b22; color:var(--warning); }
+.status-done { background:#4ade8022; color:var(--accent); }
+
+/* Preview scoreboard */
+.preview-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden;
+}
+.preview-label { padding:10px 14px; font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; border-bottom:1px solid var(--border); }
+.preview-iframe-wrap { padding:12px; background:transparent; }
+.scoreboard-preview {
+  width:100%; border-radius:8px; overflow:hidden;
+  background: linear-gradient(135deg, #e8e8e8, #c0c0c0, #a0a0a0);
+  display:flex; align-items:center; height:100px; position:relative;
+  border:2px solid #606060; box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.sb-bar { position:absolute; top:0; left:0; right:0; height:5px; background:linear-gradient(90deg,#0066cc,#0099ff); }
+.sb-team { display:flex; align-items:center; gap:8px; flex:1; padding:8px 14px; }
+.sb-team.right { flex-direction:row-reverse; text-align:right; }
+.sb-team-logo { width:42px; height:42px; object-fit:contain; border-radius:50%; background:rgba(255,255,255,.3); flex-shrink:0; }
+.sb-team-name { font-size:13px; font-weight:900; color:#1a1a1a; text-transform:uppercase; line-height:1.1; }
+.sb-center { display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 8px; flex-shrink:0; }
+.sb-league-logo { width:28px; height:28px; object-fit:contain; }
+.sb-score-wrap { background:linear-gradient(135deg,#fff,#e0e0e0); border:2px solid #0066cc; border-radius:30px; padding:4px 14px; display:flex; gap:8px; align-items:center; }
+.sb-score { font-size:28px; font-weight:900; color:#0066cc; min-width:24px; text-align:center; line-height:1; }
+.sb-sep { font-size:20px; color:#666; font-weight:900; }
+
+/* ── GRÁFICOS TAB ── */
+.graficos-header { padding:20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.graficos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; padding:20px; }
+.grafico-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.grafico-img { width:100%; aspect-ratio:5.6; object-fit:cover; background:var(--surface2); }
+.grafico-info { padding:10px 12px; display:flex; align-items:center; justify-content:space-between; }
+.grafico-name { font-size:11px; color:var(--text-muted); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.league-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; background:var(--surface3); color:var(--accent); }
+
+/* ── CALENDARIO TAB ── */
+.cal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.week-nav { display:flex; align-items:center; gap:8px; }
+.week-nav button { padding:6px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); cursor:pointer; font-size:13px; }
+.week-nav button:hover { border-color:var(--accent); }
+.week-label { font-size:14px; font-weight:700; min-width:160px; text-align:center; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; padding:16px; flex:1; overflow:hidden; }
+.day-col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+.day-col.today { border-color:var(--accent); }
+.day-head {
+  background:var(--surface2); padding:10px 8px; text-align:center; flex-shrink:0;
+  border-bottom:2px solid var(--accent);
+}
+.day-name { font-size:12px; font-weight:700; color:var(--text-muted); }
+.day-date { font-size:18px; font-weight:900; color:var(--text); }
+.day-body { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px; }
+.task-chip {
+  background:var(--surface3); border-left:3px solid var(--accent);
+  border-radius:6px; padding:7px 9px; cursor:pointer; font-size:11px;
+  transition:all .15s;
+}
+.task-chip:hover { border-left-color:var(--blue); transform:translateX(2px); }
+.task-chip .chip-name { font-weight:700; color:var(--text); margin-bottom:3px; }
+.task-chip .chip-league { color:var(--accent); font-size:10px; }
+.task-chip .chip-who { color:var(--text-muted); font-size:10px; margin-top:2px; }
+.chip-status { display:inline-block; font-size:9px; font-weight:700; padding:1px 6px; border-radius:3px; margin-top:3px; }
+.s-pending { background:#f59e0b22; color:var(--warning); }
+.s-progress { background:#3b82f622; color:var(--blue); }
+.s-done { background:#4ade8022; color:var(--accent); }
+.add-task-btn { padding:6px; color:var(--text-muted); font-size:20px; text-align:center; cursor:pointer; flex-shrink:0; border-top:1px solid var(--border); }
+.add-task-btn:hover { color:var(--accent); background:var(--surface2); }
+
+/* ── CONFIG TAB ── */
+.config-layout { padding:24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px; align-content:start; }
+.config-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.config-card-title { font-size:15px; font-weight:800; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.server-info-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.server-info-row:last-child { border-bottom:none; }
+.copy-btn { padding:4px 10px; background:var(--surface3); border:1px solid var(--border); border-radius:6px; color:var(--accent); cursor:pointer; font-size:11px; font-weight:700; }
+.copy-btn:hover { background:var(--accent); color:#000; }
+.url-chip { font-family:monospace; font-size:13px; color:var(--accent); background:var(--surface2); padding:4px 10px; border-radius:6px; }
+
+/* ── MODALS ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:500; display:none; align-items:center; justify-content:center; padding:16px; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; width:min(600px,100%); max-height:90vh; overflow-y:auto; }
+.modal-head { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.modal-head h3 { font-size:18px; font-weight:800; }
+.modal-close { background:none; border:none; color:var(--text-muted); font-size:24px; cursor:pointer; padding:0; }
+.modal-close:hover { color:var(--danger); }
+.modal-body { padding:24px; display:flex; flex-direction:column; gap:16px; }
+.modal-foot { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.leagues-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; border:1px solid var(--border); border-radius:8px; padding:12px; max-height:160px; overflow-y:auto; }
+.league-check { display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
+.league-check input { width:auto; accent-color:var(--accent); }
+
+/* ── NOTIFICATIONS ── */
+.toast { position:fixed; bottom:20px; right:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; font-size:13px; z-index:9000; box-shadow:0 8px 30px rgba(0,0,0,.5); transform:translateY(80px); opacity:0; transition:all .3s; max-width:320px; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { border-left:3px solid var(--accent); }
+.toast.error { border-left:3px solid var(--danger); }
+.toast.info { border-left:3px solid var(--blue); }
+
+/* ── MOBILE ── */
+@media (max-width:768px) {
+  .header-tabs { display:none; }
+  .header-brand { display:none; }
+  .resultados-layout { grid-template-columns:1fr; }
+  .panel { border-right:none; border-bottom:1px solid var(--border); }
+  .cal-grid { grid-template-columns:1fr; }
+  .day-col:not(.mobile-active) { display:none; }
+  .mobile-day-tabs { display:flex !important; }
+  .server-status-text { display:none; }
+  .graficos-grid { grid-template-columns:1fr 1fr; gap:10px; padding:12px; }
+  .config-layout { grid-template-columns:1fr; padding:16px; }
+  #mobile-nav { display:flex !important; }
+}
+
+/* Mobile nav */
+#mobile-nav {
+  display:none; position:fixed; bottom:0; left:0; right:0;
+  background:var(--surface); border-top:1px solid var(--border);
+  z-index:200; padding:8px 0;
+}
+.mobile-nav-items { display:flex; }
+.mobile-nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px; cursor:pointer; font-size:10px; color:var(--text-muted); border:none; background:none; }
+.mobile-nav-btn.active { color:var(--accent); }
+.mobile-nav-btn span { font-size:20px; }
+.mobile-day-tabs { display:none; overflow-x:auto; padding:8px 12px; gap:8px; border-bottom:1px solid var(--border); }
+.mobile-day-tab { flex-shrink:0; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; background:var(--surface2); color:var(--text-muted); border:none; }
+.mobile-day-tab.active { background:var(--accent); color:#000; }
+
+/* empty state */
+.empty-state { text-align:center; padding:48px 24px; color:var(--text-muted); }
+.empty-state .emoji { font-size:48px; margin-bottom:12px; }
+.empty-icon { font-size:40px; }
+
+/* spinner */
+.spinner { border:3px solid var(--surface3); border-top:3px solid var(--accent); border-radius:50%; width:24px; height:24px; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-row { display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:13px; padding:12px; }
+
+/* scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--surface); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#444; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <img src="/static/buho_vision_logo.png" class="login-logo" onerror="this.style.display='none'" alt="">
+    <div class="login-title">BUHO VISION</div>
+    <div class="login-subtitle">Ecosistema Integral de Producción</div>
+    <div id="login-new" style="display:none">
+      <input type="text" id="login-name" placeholder="Tu nombre..." maxlength="30" autocomplete="name">
+      <input type="number" id="login-pin" placeholder="PIN (opcional, 4 dígitos)" maxlength="4" min="0" max="9999">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);cursor:pointer;margin-bottom:8px;">
+        <input type="checkbox" id="login-remember" checked style="width:auto;accent-color:var(--accent);">
+        Recordarme en este dispositivo
+      </label>
+      <button class="login-btn" onclick="Auth.doLogin()">Entrar</button>
+    </div>
+    <div id="login-returning" style="display:none">
+      <div class="login-greeting" id="login-greeting"></div>
+      <input type="number" id="login-pin-verify" placeholder="PIN (si configuraste uno)" maxlength="4" min="0" max="9999" style="margin-bottom:12px;">
+      <button class="login-btn" onclick="Auth.verifyLogin()">Entrar</button>
+      <div class="login-change" onclick="Auth.showNew()">¿No eres tú? Cambiar usuario</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app">
+  <!-- HEADER -->
+  <div class="header">
+    <img src="/static/buho_vision_logo.png" class="header-logo" onerror="this.style.display='none'" alt="BV">
+    <div class="header-brand">BUHO VISION</div>
+    <div class="header-tabs">
+      <button class="tab-btn active" data-tab="resultados">⚽ Resultados</button>
+      <button class="tab-btn" data-tab="graficos">🎨 Gráficos</button>
+      <button class="tab-btn" data-tab="calendario">📅 Calendario</button>
+      <button class="tab-btn" data-tab="config">⚙️ Config</button>
+    </div>
+    <div class="header-right">
+      <div id="server-dot" class="server-dot"></div>
+      <span class="server-status-text" id="server-status-text">verificando...</span>
+      <div class="user-badge">
+        <div class="user-avatar" id="header-avatar"></div>
+        <span class="user-name" id="header-name"></span>
+        <span class="logout-btn" onclick="Auth.logout()" title="Cerrar sesión">✕</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <!-- ══ TAB RESULTADOS ══ -->
+    <div class="tab-panel active" id="tab-resultados">
+      <div class="resultados-layout">
+
+        <!-- Panel izquierdo: configuración de fecha -->
+        <div class="panel">
+          <div class="panel-title">📋 Fecha</div>
+          <div class="card">
+            <div>
+              <label>Liga</label>
+              <select id="sel-league" onchange="Resultados.onLeagueChange()">
+                <option value="">Cargando ligas...</option>
+              </select>
+            </div>
+            <div>
+              <label>Número de Fecha</label>
+              <input type="number" id="sel-fecha" value="1" min="1">
+            </div>
+            <div id="league-info" style="font-size:12px;color:var(--text-muted);"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Agregar Partido</div>
+            <div>
+              <label>Local</label>
+              <div class="autocomplete-wrap">
+                <div class="autocomplete-input">
+                  <img id="home-logo-preview" class="team-logo-preview" src="" alt="" style="display:none">
+                  <input type="text" id="home-team" placeholder="Equipo local..." autocomplete="off" oninput="Resultados.filterTeams('home',this.value)" onblur="setTimeout(()=>Resultados.closeDropdown('home'),200)">
+                </div>
+                <div class="dropdown-list" id="home-dropdown"></div>
+              </div>
+            </div>
+            <div class="score-row">
+              <div class="score-input-group">
+                <label>Goles Local</label>
+                <input type="number" id="home-score" value="0" min="0" max="99" oninput="Resultados.updatePreview()">
+              </div>
+              <div class="score-vs">vs</div>
+              <div class="score-input-group">
+                <label>Goles Visit.</label>
+                <input type="number" id="away-score" value="0" min="0" max="99" oninput="Resultados.updatePreview()">
+              </div>
+            </div>
+            <div>
+              <label>Visitante</label>
+              <div class="autocomplete-wrap">
+                <div class="autocomplete-input">
+                  <img id="away-logo-preview" class="team-logo-preview" src="" alt="" style="display:none">
+                  <input type="text" id="away-team" placeholder="Equipo visitante..." autocomplete="off" oninput="Resultados.filterTeams('away',this.value)" onblur="setTimeout(()=>Resultados.closeDropdown('away'),200)">
+                </div>
+                <div class="dropdown-list" id="away-dropdown"></div>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-full" onclick="Resultados.addPartido()">➕ Agregar Partido</button>
+          </div>
+          <div class="card" style="gap:8px;">
+            <button class="btn btn-primary btn-full" id="btn-generate-all" onclick="Resultados.generateAll()" disabled>🎨 Generar Todos los Gráficos</button>
+            <button class="btn btn-secondary btn-full" onclick="Resultados.clearAll()">🗑️ Limpiar Fecha</button>
+          </div>
+        </div>
+
+        <!-- Panel central: lista de partidos -->
+        <div class="panel">
+          <div class="panel-title">🏟️ Partidos de la Fecha</div>
+          <div id="partidos-list">
+            <div class="empty-state">
+              <div class="emoji">⚽</div>
+              <div>Seleccioná una liga y agregá los partidos de la fecha</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel derecho: preview -->
+        <div class="panel">
+          <div class="panel-title">👁️ Vista Previa</div>
+          <div class="preview-box">
+            <div class="preview-label">SCOREBOARD</div>
+            <div style="padding:10px;">
+              <div class="scoreboard-preview" id="sb-preview">
+                <div class="sb-bar"></div>
+                <div class="sb-team">
+                  <img id="sb-home-logo" class="sb-team-logo" src="" alt="" style="display:none">
+                  <div id="sb-home-init" class="user-avatar" style="width:40px;height:40px;font-size:13px;background:#0066cc;">?</div>
+                  <div class="sb-team-name" id="sb-home-name">LOCAL</div>
+                </div>
+                <div class="sb-center">
+                  <img id="sb-league-logo" class="sb-league-logo" src="" alt="" style="display:none">
+                  <div class="sb-score-wrap">
+                    <div class="sb-score" id="sb-score-home">0</div>
+                    <div class="sb-sep">-</div>
+                    <div class="sb-score" id="sb-score-away">0</div>
+                  </div>
+                </div>
+                <div class="sb-team right">
+                  <div class="sb-team-name" id="sb-away-name">VISITANTE</div>
+                  <img id="sb-away-logo" class="sb-team-logo" src="" alt="" style="display:none">
+                  <div id="sb-away-init" class="user-avatar" style="width:40px;height:40px;font-size:13px;background:#0066cc;">?</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);text-align:center;">Vista previa en tiempo real</div>
+          <button class="btn btn-secondary btn-full" id="btn-gen-single" onclick="Resultados.generateSingle()" disabled>💾 Generar Este Gráfico</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB GRÁFICOS ══ -->
+    <div class="tab-panel" id="tab-graficos">
+      <div class="graficos-header">
+        <div class="panel-title" style="margin:0;">🎨 Gráficos Generados</div>
+        <select id="graficos-league-filter" onchange="Graficos.load()" style="width:200px;">
+          <option value="">Todas las ligas</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="Graficos.load()">🔄 Actualizar</button>
+        <button class="btn btn-primary btn-sm" onclick="Graficos.downloadAll()">📦 Descargar Todos</button>
+        <span id="graficos-count" style="color:var(--text-muted);font-size:13px;margin-left:auto;"></span>
+      </div>
+      <div class="graficos-grid" id="graficos-grid">
+        <div class="loading-row"><div class="spinner"></div> Cargando gráficos...</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB CALENDARIO ══ -->
+    <div class="tab-panel" id="tab-calendario" style="flex-direction:column;">
+      <div class="cal-header">
+        <div class="week-nav">
+          <button onclick="Cal.changeWeek(-1)">◀</button>
+          <div class="week-label" id="cal-week-label"></div>
+          <button onclick="Cal.changeWeek(1)">▶</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="Cal.goToday()">Hoy</button>
+        <button class="btn btn-primary btn-sm" onclick="Cal.openAddTask()">➕ Agregar</button>
+        <div class="mobile-day-tabs" id="mobile-day-tabs"></div>
+      </div>
+      <div class="cal-grid" id="cal-grid" style="flex:1;min-height:0;"></div>
+    </div>
+
+    <!-- ══ TAB CONFIG ══ -->
+    <div class="tab-panel" id="tab-config">
+      <div class="config-layout">
+
+        <!-- Server status -->
+        <div class="config-card">
+          <div class="config-card-title">🖥️ Servidor Local</div>
+          <div class="server-info-row">
+            <span>Estado</span>
+            <span id="cfg-server-status" style="color:var(--danger)">Sin conexión</span>
+          </div>
+          <div class="server-info-row">
+            <span>URL Local</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="url-chip" id="cfg-local-url">http://localhost:5000</span>
+              <button class="copy-btn" onclick="copyToClipboard('http://localhost:5000')">Copiar</button>
+            </div>
+          </div>
+          <div class="server-info-row">
+            <span>URL Red (celulares)</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="url-chip" id="cfg-network-url">—</span>
+              <button class="copy-btn" onclick="copyToClipboard(document.getElementById('cfg-network-url').textContent)">Copiar</button>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);">
+            💡 Compartí la URL de red con tu equipo para que accedan desde sus celulares y computadoras (misma red WiFi).
+          </div>
+        </div>
+
+        <!-- Ligas -->
+        <div class="config-card">
+          <div class="config-card-title">🏆 Ligas Configuradas</div>
+          <div id="cfg-leagues-list" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="loading-row"><div class="spinner"></div> Cargando...</div>
+          </div>
+        </div>
+
+        <!-- Equipo -->
+        <div class="config-card">
+          <div class="config-card-title">👥 Equipo</div>
+          <div id="cfg-team-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <button class="btn btn-secondary btn-full" style="margin-top:12px;" onclick="Config.addMember()">➕ Agregar miembro</button>
+        </div>
+
+        <!-- About -->
+        <div class="config-card">
+          <div class="config-card-title">🦉 Acerca de</div>
+          <div style="font-size:13px;color:var(--text-muted);display:flex;flex-direction:column;gap:8px;">
+            <div>Buho Vision Ecosystem v1.0</div>
+            <div>Servidor Flask + Web App integral</div>
+            <div>Genera gráficos de scoreboard con escudos reales para todas las ligas.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- Mobile nav -->
+  <nav id="mobile-nav">
+    <div class="mobile-nav-items">
+      <button class="mobile-nav-btn active" data-tab="resultados"><span>⚽</span>Resultados</button>
+      <button class="mobile-nav-btn" data-tab="graficos"><span>🎨</span>Gráficos</button>
+      <button class="mobile-nav-btn" data-tab="calendario"><span>📅</span>Calendario</button>
+      <button class="mobile-nav-btn" data-tab="config"><span>⚙️</span>Config</button>
+    </div>
+  </nav>
+</div><!-- /app -->
+
+<!-- MODAL: Agregar Tarea -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-task-title">➕ Nueva Tarea</h3>
+      <button class="modal-close" onclick="Cal.closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="task-id">
+      <div>
+        <label>Nombre de la Tarea</label>
+        <input type="text" id="task-name" placeholder="Ej: Partido Final Liga Kings">
+      </div>
+      <div>
+        <label>Tipo</label>
+        <select id="task-type">
+          <option value="grabar">📹 A Grabar</option>
+          <option value="editar-subir">🎬 Editar y Subir</option>
+          <option value="subir">📤 Subir a YouTube</option>
+          <option value="nombrar">📝 Nombrar</option>
+          <option value="compartir">🔗 Compartir Link</option>
+        </select>
+      </div>
+      <div>
+        <label>Ligas</label>
+        <div class="leagues-grid" id="task-leagues-grid"></div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Responsable</label>
+          <select id="task-assignee">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
+        <div>
+          <label>Estado</label>
+          <select id="task-status">
+            <option value="pending">Pendiente</option>
+            <option value="in-progress">En Proceso</option>
+            <option value="completed">Completado</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Fecha y Hora Límite</label>
+        <input type="datetime-local" id="task-deadline">
+      </div>
+      <div>
+        <label>Notas</label>
+        <textarea id="task-notes" rows="3" placeholder="Detalles adicionales..."></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="Cal.closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="Cal.saveTask()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Ver tarea -->
+<div class="modal-overlay" id="modal-view-task">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>📋 Detalle</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-view-task').classList.remove('open')">×</button>
+    </div>
+    <div class="modal-body" id="task-detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="task-del-btn">🗑️ Eliminar</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-view-task').classList.remove('open')">Cerrar</button>
+      <button class="btn btn-primary" id="task-edit-btn">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════
+const COLORS = ['#4ade80','#3b82f6','#f59e0b','#a855f7','#ef4444','#06b6d4','#ec4899'];
+const Auth = {
+  user: null,
+  init() {
+    const saved = localStorage.getItem('bv_user');
+    if (saved) {
+      try {
+        this.user = JSON.parse(saved);
+        if (this.user.remembered) { this.startApp(); return; }
+        // Has user but not remembered - show PIN verify
+        this.showReturning();
+        return;
+      } catch(e) {}
+    }
+    this.showNew();
+  },
+  showNew() {
+    document.getElementById('login-new').style.display = '';
+    document.getElementById('login-returning').style.display = 'none';
+  },
+  showReturning() {
+    if (!this.user) { this.showNew(); return; }
+    document.getElementById('login-new').style.display = 'none';
+    document.getElementById('login-returning').style.display = '';
+    document.getElementById('login-greeting').textContent = `Hola, ${this.user.name}! 👋`;
+  },
+  doLogin() {
+    const name = document.getElementById('login-name').value.trim();
+    if (!name) { toast('Ingresá tu nombre', 'error'); return; }
+    const pin = document.getElementById('login-pin').value;
+    const remember = document.getElementById('login-remember').checked;
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    this.user = { name, pin: pin ? btoa(pin+'bv24') : '', color, remembered: remember };
+    localStorage.setItem('bv_user', JSON.stringify(this.user));
+    this.startApp();
+  },
+  verifyLogin() {
+    if (!this.user) { this.showNew(); return; }
+    const pinIn = document.getElementById('login-pin-verify').value;
+    if (this.user.pin && btoa(pinIn+'bv24') !== this.user.pin) {
+      toast('PIN incorrecto', 'error'); return;
+    }
+    this.startApp();
+  },
+  startApp() {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    const av = document.getElementById('header-avatar');
+    av.style.background = this.user.color;
+    av.textContent = this.user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('header-name').textContent = this.user.name;
+    App.init();
+  },
+  logout() {
+    localStorage.removeItem('bv_user');
+    location.reload();
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// APP CORE
+// ═══════════════════════════════════════════════════
+let serverOnline = false;
+
+const App = {
+  async init() {
+    this.bindTabs();
+    await this.checkServer();
+    setInterval(() => this.checkServer(), 30000);
+    Resultados.init();
+    Cal.init();
+    Graficos.init();
+    Config.init();
+  },
+  async checkServer() {
+    try {
+      const r = await fetch('/api/status', {signal: AbortSignal.timeout(3000)});
+      serverOnline = r.ok;
+      if (r.ok) {
+        const data = await r.json();
+        document.getElementById('server-dot').classList.add('online');
+        document.getElementById('server-status-text').textContent = 'En vivo';
+        document.getElementById('cfg-server-status').style.color = 'var(--accent)';
+        document.getElementById('cfg-server-status').textContent = '✅ Conectado';
+        if (data.url) {
+          document.getElementById('cfg-network-url').textContent = data.url;
+        }
+      }
+    } catch {
+      serverOnline = false;
+      document.getElementById('server-dot').classList.remove('online');
+      document.getElementById('server-status-text').textContent = 'Sin servidor';
+      document.getElementById('cfg-server-status').style.color = 'var(--danger)';
+      document.getElementById('cfg-server-status').textContent = '❌ Sin conexión';
+    }
+  },
+  bindTabs() {
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-'+tab));
+        if (tab === 'graficos') Graficos.load();
+        if (tab === 'config') Config.init();
+      });
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// RESULTADOS
+// ═══════════════════════════════════════════════════
+const Resultados = {
+  teams: [],
+  partidos: [],
+  currentLeague: '',
+
+  async init() {
+    await this.loadLeagues();
+    const saved = localStorage.getItem('bv_partidos');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        this.partidos = data.partidos || [];
+        this.currentLeague = data.league || '';
+        if (this.currentLeague) {
+          document.getElementById('sel-league').value = this.currentLeague;
+          await this.onLeagueChange();
+        }
+        this.renderPartidos();
+      } catch(e) {}
+    }
+  },
+
+  async loadLeagues() {
+    try {
+      const r = await fetch('/api/leagues');
+      const d = await r.json();
+      const sel = document.getElementById('sel-league');
+      const gFilter = document.getElementById('graficos-league-filter');
+      sel.innerHTML = '<option value="">Seleccionar liga...</option>';
+      gFilter.innerHTML = '<option value="">Todas las ligas</option>';
+      d.leagues.forEach(l => {
+        if (l.has_logos || l.folder_exists) {
+          sel.innerHTML += `<option value="${l.name}">${l.emoji} ${l.name} (${l.logo_count} escudos)</option>`;
+          gFilter.innerHTML += `<option value="${l.name}">${l.name}</option>`;
+        }
+      });
+    } catch(e) {
+      document.getElementById('sel-league').innerHTML = '<option>Error cargando ligas</option>';
+    }
+  },
+
+  async onLeagueChange() {
+    const league = document.getElementById('sel-league').value;
+    this.currentLeague = league;
+    this.teams = [];
+    document.getElementById('league-info').textContent = '';
+    if (!league) return;
+    try {
+      const r = await fetch(`/api/teams/${encodeURIComponent(league)}`);
+      const d = await r.json();
+      this.teams = d.teams || [];
+      document.getElementById('league-info').textContent = `${this.teams.length} equipos disponibles`;
+      // Update league logo preview
+      document.getElementById('sb-league-logo').src = `/api/league-logo/${encodeURIComponent(league)}`;
+      document.getElementById('sb-league-logo').style.display = '';
+    } catch(e) {}
+    this.updatePreview();
+  },
+
+  filterTeams(side, query) {
+    const dropdown = document.getElementById(`${side}-dropdown`);
+    if (!query || !this.teams.length) { dropdown.classList.remove('open'); return; }
+    const q = query.toLowerCase();
+    const matches = this.teams.filter(t => t.name.toLowerCase().includes(q)).slice(0, 20);
+    if (!matches.length) { dropdown.classList.remove('open'); return; }
+    dropdown.innerHTML = matches.map(t =>
+      `<div class="dropdown-item" onmousedown="Resultados.selectTeam('${side}','${t.name.replace(/'/g,"\\'")}','${t.logo_url}')">
+        <img src="${t.logo_url}" alt="" onerror="this.style.display='none'">
+        ${t.name}
+      </div>`
+    ).join('');
+    dropdown.classList.add('open');
+  },
+
+  selectTeam(side, name, logoUrl) {
+    document.getElementById(`${side}-team`).value = name;
+    const preview = document.getElementById(`${side}-logo-preview`);
+    preview.src = logoUrl;
+    preview.style.display = '';
+    preview.onerror = () => preview.style.display = 'none';
+    document.getElementById(`${side}-dropdown`).classList.remove('open');
+    this.updatePreview();
+    document.getElementById('btn-gen-single').disabled = false;
+  },
+
+  closeDropdown(side) {
+    document.getElementById(`${side}-dropdown`).classList.remove('open');
+  },
+
+  updatePreview() {
+    const home = document.getElementById('home-team').value.trim();
+    const away = document.getElementById('away-team').value.trim();
+    const hs = document.getElementById('home-score').value || '0';
+    const as_ = document.getElementById('away-score').value || '0';
+    const league = this.currentLeague;
+
+    document.getElementById('sb-home-name').textContent = home || 'LOCAL';
+    document.getElementById('sb-away-name').textContent = away || 'VISITANTE';
+    document.getElementById('sb-score-home').textContent = hs;
+    document.getElementById('sb-score-away').textContent = as_;
+
+    const updateLogo = (side, team) => {
+      const img = document.getElementById(`sb-${side}-logo`);
+      const init = document.getElementById(`sb-${side}-init`);
+      if (team && league) {
+        img.src = `/api/logo/${encodeURIComponent(league)}/${encodeURIComponent(team)}`;
+        img.style.display = '';
+        img.onload = () => { init.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none'; init.style.display = ''; init.textContent = team.split(' ').map(w=>w[0]).join('').slice(0,2) || '?'; };
+      } else {
+        img.style.display = 'none';
+        init.style.display = '';
+        init.textContent = team ? team.split(' ').map(w=>w[0]).join('').slice(0,2) : '?';
+      }
+    };
+    updateLogo('home', home);
+    updateLogo('away', away);
+  },
+
+  addPartido() {
+    const home = document.getElementById('home-team').value.trim();
+    const away = document.getElementById('away-team').value.trim();
+    const hs = document.getElementById('home-score').value || '0';
+    const as_ = document.getElementById('away-score').value || '0';
+    if (!home || !away) { toast('Ingresá ambos equipos', 'error'); return; }
+    if (!this.currentLeague) { toast('Seleccioná una liga', 'error'); return; }
+    this.partidos.push({ id: Date.now(), home, away, home_score: hs, away_score: as_, status: 'pending' });
+    this.saveLocal();
+    this.renderPartidos();
+    // Limpiar
+    document.getElementById('home-team').value = '';
+    document.getElementById('away-team').value = '';
+    document.getElementById('home-score').value = '0';
+    document.getElementById('away-score').value = '0';
+    document.getElementById('home-logo-preview').style.display = 'none';
+    document.getElementById('away-logo-preview').style.display = 'none';
+    document.getElementById('btn-generate-all').disabled = false;
+    toast(`${home} vs ${away} agregado`, 'success');
+  },
+
+  renderPartidos() {
+    const el = document.getElementById('partidos-list');
+    if (!this.partidos.length) {
+      el.innerHTML = '<div class="empty-state"><div class="emoji">⚽</div><div>Agregá los partidos de la fecha</div></div>';
+      document.getElementById('btn-generate-all').disabled = true;
+      return;
+    }
+    el.innerHTML = this.partidos.map((p,i) => `
+      <div class="partido-card">
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
+          <div class="partido-teams">
+            <img src="/api/logo/${encodeURIComponent(this.currentLeague)}/${encodeURIComponent(p.home)}" class="partido-logo" onerror="this.style.display='none'">
+            <span>${p.home}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="partido-score">${p.home_score} - ${p.away_score}</span>
+            <span class="partido-status ${p.status==='done'?'status-done':'status-pending'}">${p.status==='done'?'✅ Listo':'⏳ Pendiente'}</span>
+          </div>
+          <div class="partido-teams">
+            <img src="/api/logo/${encodeURIComponent(this.currentLeague)}/${encodeURIComponent(p.away)}" class="partido-logo" onerror="this.style.display='none'">
+            <span>${p.away}</span>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="Resultados.removePartido(${i})">✕</button>
+      </div>
+    `).join('');
+    document.getElementById('btn-generate-all').disabled = false;
+  },
+
+  removePartido(i) {
+    this.partidos.splice(i, 1);
+    this.saveLocal();
+    this.renderPartidos();
+  },
+
+  saveLocal() {
+    localStorage.setItem('bv_partidos', JSON.stringify({ league: this.currentLeague, partidos: this.partidos }));
+  },
+
+  clearAll() {
+    if (!confirm('¿Limpiar todos los partidos de esta fecha?')) return;
+    this.partidos = [];
+    this.saveLocal();
+    this.renderPartidos();
+  },
+
+  async generateSingle() {
+    const home = document.getElementById('home-team').value.trim();
+    const away = document.getElementById('away-team').value.trim();
+    const hs = document.getElementById('home-score').value || '0';
+    const as_ = document.getElementById('away-score').value || '0';
+    if (!home || !away || !this.currentLeague) { toast('Completá los datos primero', 'error'); return; }
+    toast('Generando gráfico...', 'info');
+    await this.generateGraphic(this.currentLeague, home, away, hs, as_);
+  },
+
+  async generateAll() {
+    if (!this.partidos.length) return;
+    if (!serverOnline) { toast('El servidor no está corriendo. Iniciá START_SERVER.bat o START_SERVER.sh', 'error'); return; }
+    const league = this.currentLeague;
+    const fecha = document.getElementById('sel-fecha').value || '1';
+    toast('Generando todos los gráficos...', 'info');
+    document.getElementById('btn-generate-all').disabled = true;
+    try {
+      const res = await fetch('/api/generate-batch', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          league, fecha: parseInt(fecha),
+          games: this.partidos.map(p => ({ home: p.home, away: p.away, home_score: p.home_score, away_score: p.away_score }))
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast('Error: ' + (err.error || 'Error al generar'), 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Fecha_${fecha}_${league.replace(/ /g,'_')}.zip`;
+      a.click();
+      this.partidos.forEach(p => p.status = 'done');
+      this.saveLocal();
+      this.renderPartidos();
+      toast(`✅ ${this.partidos.length} gráficos generados`, 'success');
+    } catch(e) {
+      toast('Error de conexión con el servidor', 'error');
+    } finally {
+      document.getElementById('btn-generate-all').disabled = false;
+    }
+  },
+
+  async generateGraphic(league, home, away, hs, as_) {
+    if (!serverOnline) { toast('Iniciá el servidor primero (START_SERVER)', 'error'); return; }
+    try {
+      const res = await fetch('/api/generate-graphic', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ league, home_team: home, away_team: away, home_score: hs, away_score: as_ })
+      });
+      if (!res.ok) { toast('Error al generar', 'error'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${home} VS ${away} ${league}.png`; a.click();
+      toast('✅ Gráfico generado', 'success');
+    } catch(e) {
+      toast('Error de conexión', 'error');
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// GRÁFICOS
+// ═══════════════════════════════════════════════════
+const Graficos = {
+  init() {},
+  async load() {
+    const league = document.getElementById('graficos-league-filter').value;
+    const grid = document.getElementById('graficos-grid');
+    grid.innerHTML = '<div class="loading-row"><div class="spinner"></div> Cargando...</div>';
+    try {
+      const url = '/api/generated-graphics' + (league ? `?league=${encodeURIComponent(league)}` : '');
+      const r = await fetch(url);
+      const d = await r.json();
+      const list = d.graphics || [];
+      document.getElementById('graficos-count').textContent = `${list.length} gráficos`;
+      if (!list.length) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="emoji">🎨</div><div>No hay gráficos generados aún.<br>Usá la pestaña Resultados para generarlos.</div></div>';
+        return;
+      }
+      grid.innerHTML = list.map(g => `
+        <div class="grafico-card">
+          <img class="grafico-img" src="${g.url}" alt="${g.filename}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'80\\'><rect fill=\\'%23333\\' width=\\'400\\' height=\\'80\\'/><text fill=\\'%23888\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' dominant-baseline=\\'middle\\' font-size=\\'12\\'>Sin preview</text></svg>'">
+          <div class="grafico-info">
+            <span class="grafico-name" title="${g.filename}">${g.filename.replace(`.png`,'')}</span>
+            <a href="${g.url}" download="${g.filename}" class="btn btn-secondary btn-sm" style="text-decoration:none;flex-shrink:0;">⬇</a>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="emoji">❌</div><div>Error conectando al servidor.<br>Iniciá START_SERVER.bat</div></div>';
+    }
+  },
+  downloadAll() { toast('Usa el botón ⬇ en cada gráfico, o generá un ZIP desde Resultados', 'info'); }
+};
+
+// ═══════════════════════════════════════════════════
+// CALENDARIO
+// ═══════════════════════════════════════════════════
+const Cal = {
+  tasks: [],
+  weekOffset: 0,
+  editingId: null,
+  leagues: ['Liga Kings','Liga Celeste','Liga Lokura','Piria Seven League','Liga Femenina Basketball','Liga Solo Futbol','Liga PRO','Liga LVH','Liga Uruguay','Livosur','Liga MVD'],
+  team: [
+    {id:1, name:'Miguel', color:'#4ade80'},
+    {id:2, name:'Manuel', color:'#3b82f6'},
+    {id:3, name:'Editor', color:'#f59e0b'},
+    {id:4, name:'Camarógrafo', color:'#a855f7'},
+  ],
+  DAYS: ['Sábado','Domingo','Lunes','Martes','Miércoles','Jueves','Viernes'],
+  DAYS_SHORT: ['SAB','DOM','LUN','MAR','MIÉ','JUE','VIE'],
+
+  init() {
+    const saved = localStorage.getItem('bv_tasks');
+    if (saved) try { this.tasks = JSON.parse(saved); } catch(e) {}
+    const savedTeam = localStorage.getItem('bv_team');
+    if (savedTeam) try { this.team = JSON.parse(savedTeam); } catch(e) {}
+    this.render();
+  },
+
+  save() {
+    localStorage.setItem('bv_tasks', JSON.stringify(this.tasks));
+  },
+
+  getWeekStart() {
+    const today = new Date();
+    const day = today.getDay(); // 0=Sun,6=Sat
+    // We want Saturday as first day
+    const diff = (day === 6) ? 0 : -(day + 1); // days back to last Saturday
+    const sat = new Date(today);
+    sat.setDate(today.getDate() + diff + this.weekOffset * 7);
+    sat.setHours(0,0,0,0);
+    return sat;
+  },
+
+  render() {
+    const weekStart = this.getWeekStart();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    document.getElementById('cal-week-label').textContent =
+      `${weekStart.getDate()}/${weekStart.getMonth()+1} — ${weekEnd.getDate()}/${weekEnd.getMonth()+1}`;
+
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+    const mobileTabs = document.getElementById('mobile-day-tabs');
+    mobileTabs.innerHTML = '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    let activeMobileDay = -1;
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      const isToday = date.getTime() === today.getTime();
+      if (isToday && activeMobileDay === -1) activeMobileDay = i;
+
+      const dayTasks = this.tasks.filter(t => t.deadline && t.deadline.startsWith(dateStr));
+
+      // Mobile tab
+      const mtab = document.createElement('button');
+      mtab.className = 'mobile-day-tab' + (i === (activeMobileDay === -1 ? 0 : activeMobileDay) ? ' active' : '');
+      mtab.textContent = `${this.DAYS_SHORT[i]} ${date.getDate()}`;
+      mtab.onclick = () => {
+        document.querySelectorAll('.mobile-day-tab').forEach((t,j) => t.classList.toggle('active', j === i));
+        document.querySelectorAll('.day-col').forEach((c,j) => c.classList.toggle('mobile-active', j === i));
+      };
+      mobileTabs.appendChild(mtab);
+
+      // Day column
+      const col = document.createElement('div');
+      col.className = 'day-col' + (isToday ? ' today' : '') + (i === (activeMobileDay === -1 ? 0 : activeMobileDay) ? ' mobile-active' : '');
+      col.innerHTML = `
+        <div class="day-head">
+          <div class="day-name">${this.DAYS[i]}</div>
+          <div class="day-date">${date.getDate()}</div>
+        </div>
+        <div class="day-body">
+          ${dayTasks.length ? dayTasks.map(t => `
+            <div class="task-chip" onclick="Cal.viewTask(${t.id})">
+              <div class="chip-name">${t.name}</div>
+              ${t.leagues && t.leagues.length ? `<div class="chip-league">${t.leagues.slice(0,2).join(', ')}</div>` : ''}
+              ${t.assigneeId ? `<div class="chip-who">👤 ${this.team.find(m=>m.id===t.assigneeId)?.name||''}</div>` : ''}
+              <span class="chip-status ${t.status==='completed'?'s-done':t.status==='in-progress'?'s-progress':'s-pending'}">${t.status==='completed'?'✅ Listo':t.status==='in-progress'?'🔄 En proceso':'⏳ Pendiente'}</span>
+            </div>
+          `).join('') : '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:12px;">Sin tareas</div>'}
+        </div>
+        <div class="add-task-btn" onclick="Cal.openAddTask('${dateStr}')">+</div>
+      `;
+      grid.appendChild(col);
+    }
+  },
+
+  changeWeek(dir) { this.weekOffset += dir; this.render(); },
+  goToday() { this.weekOffset = 0; this.render(); },
+
+  openAddTask(dateStr) {
+    this.editingId = null;
+    document.getElementById('modal-task-title').textContent = '➕ Nueva Tarea';
+    document.getElementById('task-id').value = '';
+    document.getElementById('task-name').value = '';
+    document.getElementById('task-type').value = 'grabar';
+    document.getElementById('task-status').value = 'pending';
+    document.getElementById('task-notes').value = '';
+
+    const dl = document.getElementById('task-deadline');
+    if (dateStr) {
+      dl.value = dateStr + 'T09:00';
+    } else {
+      const now = new Date();
+      dl.value = now.toISOString().slice(0,16);
+    }
+
+    // Fill leagues
+    const lg = document.getElementById('task-leagues-grid');
+    lg.innerHTML = this.leagues.map(l =>
+      `<label class="league-check"><input type="checkbox" value="${l}"> ${l}</label>`
+    ).join('');
+
+    // Fill assignees
+    const as = document.getElementById('task-assignee');
+    as.innerHTML = '<option value="">Sin asignar</option>' +
+      this.team.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+
+    document.getElementById('modal-task').classList.add('open');
+  },
+
+  closeModal() {
+    document.getElementById('modal-task').classList.remove('open');
+  },
+
+  saveTask() {
+    const name = document.getElementById('task-name').value.trim();
+    if (!name) { toast('Ingresá un nombre', 'error'); return; }
+    const leagues = [...document.querySelectorAll('#task-leagues-grid input:checked')].map(c => c.value);
+    const task = {
+      id: this.editingId || Date.now(),
+      name,
+      type: document.getElementById('task-type').value,
+      leagues,
+      assigneeId: parseInt(document.getElementById('task-assignee').value) || null,
+      status: document.getElementById('task-status').value,
+      deadline: document.getElementById('task-deadline').value,
+      notes: document.getElementById('task-notes').value,
+    };
+    if (this.editingId) {
+      const idx = this.tasks.findIndex(t => t.id === this.editingId);
+      if (idx >= 0) this.tasks[idx] = task;
+    } else {
+      this.tasks.push(task);
+    }
+    this.save();
+    this.render();
+    this.closeModal();
+    toast(this.editingId ? 'Tarea actualizada' : 'Tarea agregada', 'success');
+  },
+
+  viewTask(id) {
+    const t = this.tasks.find(t => t.id === id);
+    if (!t) return;
+    const member = this.team.find(m => m.id === t.assigneeId);
+    const statusMap = {pending:'⏳ Pendiente','in-progress':'🔄 En proceso', completed:'✅ Completado'};
+    document.getElementById('task-detail-body').innerHTML = `
+      <div style="font-size:20px;font-weight:800;margin-bottom:12px;">${t.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+        <div><span style="color:var(--text-muted)">Tipo:</span><br><b>${t.type}</b></div>
+        <div><span style="color:var(--text-muted)">Estado:</span><br><b>${statusMap[t.status]||t.status}</b></div>
+        <div><span style="color:var(--text-muted)">Responsable:</span><br><b>${member?.name||'Sin asignar'}</b></div>
+        <div><span style="color:var(--text-muted)">Fecha límite:</span><br><b>${t.deadline?new Date(t.deadline).toLocaleString('es-ES'):'—'}</b></div>
+      </div>
+      ${t.leagues?.length ? `<div style="margin-top:12px;"><span style="color:var(--text-muted);font-size:13px;">Ligas:</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${t.leagues.map(l=>`<span style="background:var(--surface2);padding:3px 10px;border-radius:6px;font-size:12px;color:var(--accent);">${l}</span>`).join('')}</div></div>` : ''}
+      ${t.notes ? `<div style="margin-top:12px;background:var(--surface2);padding:12px;border-radius:8px;font-size:13px;color:var(--text-muted);">${t.notes}</div>` : ''}
+    `;
+    document.getElementById('task-del-btn').onclick = () => {
+      if (confirm('¿Eliminar esta tarea?')) {
+        this.tasks = this.tasks.filter(x => x.id !== id);
+        this.save(); this.render();
+        document.getElementById('modal-view-task').classList.remove('open');
+        toast('Tarea eliminada', 'info');
+      }
+    };
+    document.getElementById('task-edit-btn').onclick = () => {
+      document.getElementById('modal-view-task').classList.remove('open');
+      this.editTask(id);
+    };
+    document.getElementById('modal-view-task').classList.add('open');
+  },
+
+  editTask(id) {
+    const t = this.tasks.find(t => t.id === id);
+    if (!t) return;
+    this.editingId = id;
+    document.getElementById('modal-task-title').textContent = '✏️ Editar Tarea';
+    document.getElementById('task-name').value = t.name;
+    document.getElementById('task-type').value = t.type;
+    document.getElementById('task-status').value = t.status;
+    document.getElementById('task-deadline').value = t.deadline || '';
+    document.getElementById('task-notes').value = t.notes || '';
+
+    const lg = document.getElementById('task-leagues-grid');
+    lg.innerHTML = this.leagues.map(l =>
+      `<label class="league-check"><input type="checkbox" value="${l}" ${t.leagues?.includes(l)?'checked':''}> ${l}</label>`
+    ).join('');
+
+    const as = document.getElementById('task-assignee');
+    as.innerHTML = '<option value="">Sin asignar</option>' +
+      this.team.map(m => `<option value="${m.id}" ${t.assigneeId===m.id?'selected':''}>${m.name}</option>`).join('');
+
+    document.getElementById('modal-task').classList.add('open');
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+const Config = {
+  async init() {
+    this.renderTeam();
+    await this.loadLeagues();
+    // Network IP
+    try {
+      const r = await fetch('/api/network-ip');
+      const d = await r.json();
+      if (d.url) document.getElementById('cfg-network-url').textContent = d.url;
+    } catch(e) {}
+  },
+
+  async loadLeagues() {
+    try {
+      const r = await fetch('/api/leagues');
+      const d = await r.json();
+      const el = document.getElementById('cfg-leagues-list');
+      el.innerHTML = d.leagues.map(l => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span>${l.emoji} ${l.name}</span>
+          <span style="color:${l.has_logos?'var(--accent)':'var(--danger)'};">${l.logo_count} escudos</span>
+        </div>
+      `).join('');
+    } catch(e) {}
+  },
+
+  renderTeam() {
+    const el = document.getElementById('cfg-team-list');
+    el.innerHTML = Cal.team.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div class="user-avatar" style="background:${m.color};width:32px;height:32px;font-size:12px;">${m.name[0]}</div>
+        <span style="flex:1;font-size:13px;">${m.name}</span>
+        <button class="btn btn-sm" style="background:var(--surface3);color:var(--danger);border:1px solid var(--border);" onclick="Config.removeMember(${m.id})">✕</button>
+      </div>
+    `).join('');
+  },
+
+  addMember() {
+    const name = prompt('Nombre del miembro:');
+    if (!name) return;
+    const color = COLORS[Cal.team.length % COLORS.length];
+    Cal.team.push({ id: Date.now(), name: name.trim(), color });
+    localStorage.setItem('bv_team', JSON.stringify(Cal.team));
+    this.renderTeam();
+  },
+
+  removeMember(id) {
+    Cal.team = Cal.team.filter(m => m.id !== id);
+    localStorage.setItem('bv_team', JSON.stringify(Cal.team));
+    this.renderTeam();
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copiado al portapapeles', 'success'));
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// Keyboard: ESC closes modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ── INIT ──
+Auth.init();
+</script>
+</body>
+</html>
