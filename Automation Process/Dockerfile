@@ -23,6 +23,7 @@ RUN playwright install-deps chromium
 # Copy app code
 COPY app_server.py .
 COPY 2_Graphics_Generation/ ./2_Graphics_Generation/
+COPY 1_Data_Input/ ./1_Data_Input/
 COPY templates/ ./templates/
 COPY buhovision_app.html .
 

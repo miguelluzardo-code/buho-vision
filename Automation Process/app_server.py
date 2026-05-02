@@ -71,6 +71,8 @@ LOGO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 if CLOUD_MODE:
     print(f"☁️  Modo CLOUD activo — logos desde Firebase Hosting: {HOSTING_LOGOS_URL}")
 
+LOGO_DOWNLOAD_TIMEOUT = int(os.environ.get("LOGO_DOWNLOAD_TIMEOUT", "15"))
+
 def _download_logo_from_hosting(folder: str, filename: str) -> Path | None:
     """Descarga logo desde Firebase Hosting al cache local. Retorna Path o None."""
     import urllib.request
@@ -80,7 +82,8 @@ def _download_logo_from_hosting(folder: str, filename: str) -> Path | None:
         return cache_path
     url = f"{HOSTING_LOGOS_URL}/{folder}/01_Escudos/{filename}"
     try:
-        urllib.request.urlretrieve(url, str(cache_path))
+        with urllib.request.urlopen(url, timeout=LOGO_DOWNLOAD_TIMEOUT) as resp:
+            cache_path.write_bytes(resp.read())
         return cache_path
     except Exception:
         if cache_path.exists():
@@ -931,7 +934,7 @@ def generate_scoreboard_png(league, home_team, away_team, home_score, away_score
                 pass
         t = threading.Thread(target=_read, daemon=True)
         t.start()
-        t.join(timeout=3)  # máximo 3 segundos por logo
+        t.join(timeout=LOGO_DOWNLOAD_TIMEOUT)  # máximo LOGO_DOWNLOAD_TIMEOUT segundos por logo
         return result[0]
 
     home_logo_b64  = to_data_url(home_logo_path)  if home_logo_path  != "PLACEHOLDER" else ""
