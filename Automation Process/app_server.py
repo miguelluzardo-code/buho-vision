@@ -63,40 +63,28 @@ def get_ligas_base():
 
 # ── Cloud mode (Railway) ─────────────────────
 CLOUD_MODE = os.environ.get("CLOUD_MODE") == "1"
-FIREBASE_BUCKET = os.environ.get("FIREBASE_BUCKET", "buhovision-5bee4.appspot.com")
+HOSTING_LOGOS_URL = os.environ.get("HOSTING_LOGOS_URL", "https://buhovision-5bee4.web.app/logos")
 LOGOS_STORAGE_PREFIX = os.environ.get("LOGOS_STORAGE_PREFIX", "logos")
 LOGO_CACHE_DIR = Path(os.environ.get("LOGO_CACHE_DIR", "/app/logo_cache" if CLOUD_MODE else "/tmp/buho_logo_cache"))
 LOGO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 if CLOUD_MODE:
-    print("☁️  Modo CLOUD activo — logos desde Firebase Storage")
-    try:
-        import firebase_admin
-        from firebase_admin import storage as fb_storage
-        if not firebase_admin._apps:
-            firebase_admin.initialize_app(options={"storageBucket": FIREBASE_BUCKET})
-        _fb_bucket = fb_storage.bucket()
-        print(f"✅ Firebase Storage: {_fb_bucket.name}")
-    except Exception as e:
-        print(f"⚠️  Firebase Storage no disponible: {e}")
-        _fb_bucket = None
-else:
-    _fb_bucket = None
+    print(f"☁️  Modo CLOUD activo — logos desde Firebase Hosting: {HOSTING_LOGOS_URL}")
 
-def _download_logo_from_storage(storage_path: str) -> Path | None:
-    """Descarga logo desde Firebase Storage al cache local. Retorna Path o None."""
-    if not _fb_bucket:
-        return None
-    cache_path = LOGO_CACHE_DIR / storage_path.replace("/", "_")
+def _download_logo_from_hosting(folder: str, filename: str) -> Path | None:
+    """Descarga logo desde Firebase Hosting al cache local. Retorna Path o None."""
+    import urllib.request
+    cache_key = f"{folder}_{filename}".replace("/", "_")
+    cache_path = LOGO_CACHE_DIR / cache_key
     if cache_path.exists():
         return cache_path
+    url = f"{HOSTING_LOGOS_URL}/{folder}/01_Escudos/{filename}"
     try:
-        blob = _fb_bucket.blob(storage_path)
-        if blob.exists():
-            blob.download_to_filename(str(cache_path))
-            return cache_path
-    except Exception as e:
-        print(f"⚠️  No se pudo descargar {storage_path}: {e}")
+        urllib.request.urlretrieve(url, str(cache_path))
+        return cache_path
+    except Exception:
+        if cache_path.exists():
+            cache_path.unlink()
     return None
 
 MAC_LIGAS_BASE = get_ligas_base()
@@ -347,7 +335,7 @@ def find_logo(league_name, team_name):
     escudos_dir = get_league_escudos_path(league_name)
     local_exists = escudos_dir and escudos_dir.exists()
 
-    # Cloud mode: try Firebase Storage if local not available
+    # Cloud mode: try Firebase Hosting if local not available
     if CLOUD_MODE or not local_exists:
         league_info = LEAGUES_MAP.get(league_name, {})
         folder = league_info.get("folder", "")
@@ -363,8 +351,7 @@ def find_logo(league_name, team_name):
             ]
             for variant in variants_cloud:
                 for ext in [".png", ".jpg", ".jpeg"]:
-                    sp = f"{LOGOS_STORAGE_PREFIX}/{folder}/01_Escudos/{variant}{ext}"
-                    cached = _download_logo_from_storage(sp)
+                    cached = _download_logo_from_hosting(folder, f"{variant}{ext}")
                     if cached:
                         return cached
         if CLOUD_MODE:

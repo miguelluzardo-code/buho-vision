@@ -1,0 +1,22 @@
+{
+  "hosting": {
+    "public": "deploy_public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/logos/**",
+        "headers": [{"key": "Cache-Control", "value": "public, max-age=604800"}]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "!/logos/**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
