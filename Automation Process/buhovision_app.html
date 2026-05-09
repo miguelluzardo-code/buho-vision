@@ -2093,13 +2093,15 @@ body {
           <input class="finput" id="traz-search" placeholder="Buscar serie, club house, ubicación…" style="min-width:220px" oninput="renderTrazabilidad()">
           <select class="fselect" id="traz-filter-clubhouse" onchange="renderTrazabilidad()" style="min-width:140px">
             <option value="">— Club House —</option>
-            <option>URUGUAY 2</option>
-            <option>PERSONAL 2</option>
             <option>BHV 1</option>
             <option>BHV 3</option>
             <option>BHV 9</option>
-            <option>TRANSMISION</option>
-            <option>BUHOVISION</option>
+            <option>BHV 11</option>
+            <option>BUHOVISIÓN</option>
+            <option>CR EVENTOS</option>
+            <option>PERSONAL 2</option>
+            <option>TRANSMISIÓN</option>
+            <option>URUGUAY 2</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="importarCamarasVeo()" title="Importar inventario escaneado desde Veo.co">🔄 Importar Veo</button>
           <button class="btn btn-primary btn-sm" onclick="openAddCamaraModal(null)">+ Cámara</button>
@@ -2303,13 +2305,14 @@ body {
           <label class="flabel">Club House</label>
           <select class="fselect" id="pos-clubhouse">
             <option value="">— Sin asignar —</option>
-            <option>URUGUAY 2</option>
-            <option>PERSONAL 2</option>
             <option>BHV 1</option>
             <option>BHV 3</option>
             <option>BHV 9</option>
-            <option>TRANSMISION</option>
-            <option>BUHOVISION</option>
+            <option>BHV 11</option>
+            <option>BUHOVISIÓN</option>
+            <option>PERSONAL 2</option>
+            <option>TRANSMISIÓN</option>
+            <option>URUGUAY 2</option>
           </select>
         </div>
         <div class="fg">
@@ -2393,13 +2396,14 @@ body {
           <label class="flabel">Club House</label>
           <select class="fselect" id="cam-clubhouse">
             <option value="">— Sin asignar —</option>
-            <option>URUGUAY 2</option>
-            <option>PERSONAL 2</option>
             <option>BHV 1</option>
             <option>BHV 3</option>
             <option>BHV 9</option>
-            <option>TRANSMISION</option>
-            <option>BUHOVISION</option>
+            <option>BHV 11</option>
+            <option>BUHOVISIÓN</option>
+            <option>PERSONAL 2</option>
+            <option>TRANSMISIÓN</option>
+            <option>URUGUAY 2</option>
           </select>
         </div>
         <div class="fg">
@@ -2699,7 +2703,7 @@ const LS = { lg: 'ps2_leagues', gm: 'ps2_games', ss: 'ps2_sessions', vn: 'ps2_ve
 function load(k)   { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } }
 function store(k,v){
   localStorage.setItem(k, JSON.stringify(v));
-  if (fbDoc) { const u={}; u[k]=v; fbDoc.set(u,{merge:true}).catch(e=>console.warn('[FB]',e)); }
+  if (fbDoc) { const u={}; u[k]=v; fbDoc.set(u,{merge:true}).catch(e=>{ console.warn('[FB]',e); toast('⚠️ Error Firestore: ' + e.message, 'err'); }); }
 }
 
 let leagues        = load(LS.lg);
@@ -3063,7 +3067,9 @@ function startFirestoreSync() {
         seedCompartidosPDF();
         seedCompartidosSemana20_26Abr();
         seedLigaPandoSemana20_26Abr();
+        seedCompartidosPDF_v2();
         seedComplejos();
+        fixDeliveredZero();
         repairOrphanedSessions();
         // Auto-importar cámaras desde Veo una sola vez para reemplazar las 70 viejas
         if (!localStorage.getItem('ps2_veo_replace_v1')) {
@@ -3095,7 +3101,12 @@ function startFirestoreSync() {
       if (d[LS.rn])  { rentals = d[LS.rn]; localStorage.setItem(LS.rn, JSON.stringify(rentals)); changed = true; }
       if (d[LS.cm])  {
         camaras = d[LS.cm];
+        // Normalizar clubhouse: "BHV11" → "BHV 11", "TRANSMISION" → "TRANSMISIÓN", "BUHOVISION" → "BUHOVISIÓN"
+        const chNorm = { 'BHV11': 'BHV 11', 'TRANSMISION': 'TRANSMISIÓN', 'BUHOVISION': 'BUHOVISIÓN' };
+        let normalized = false;
+        camaras.forEach(c => { if (chNorm[c.clubhouse]) { c.clubhouse = chNorm[c.clubhouse]; normalized = true; } });
         // Deduplicar: eliminar seriales cortos si existe el ID completo (vc3-XXXXX)
+        // Cuando se elimina el corto, se preserva el clubhouse manual si difiere
         const getNum = s => (s||'').replace(/^(vc\d+-|veocam\d+-)/i,'').toUpperCase();
         const seen = new Map();
         const remove = new Set();
@@ -3103,13 +3114,36 @@ function startFirestoreSync() {
           const num = getNum(c.serie), isLong = /^(vc|veocam)/i.test(c.serie);
           if (seen.has(num)) {
             const pi = seen.get(num), prev = camaras[pi], prevLong = /^(vc|veocam)/i.test(prev.serie);
-            if (isLong && !prevLong) { remove.add(pi); seen.set(num,i); }
-            else remove.add(i);
+            if (isLong && !prevLong) {
+              // Preservar clubhouse del serial corto (entrada manual) en el largo
+              if (prev.clubhouse && prev.clubhouse !== c.clubhouse) c.clubhouse = prev.clubhouse;
+              remove.add(pi); seen.set(num,i);
+            } else remove.add(i);
           } else seen.set(num,i);
         });
         if (remove.size) {
           camaras = camaras.filter((_,i)=>!remove.has(i));
-          db.collection('sessions_data').doc('main').set({[LS.cm]:camaras},{merge:true});
+        }
+        // Merge único por sesión: agrega cámaras de DEFAULT_CAMARAS que faltan en Firestore
+        // Corre aquí (post-Firestore) para evitar race conditions con onSnapshot
+        let seedAdded = 0;
+        if (!window._camSeeded) {
+          window._camSeeded = true;
+          const getNum2 = s => (s||'').replace(/^(vc\d+-|veocam\d+-)/i,'').toUpperCase();
+          const existingNums = new Set(camaras.map(c => getNum2(c.serie)));
+          (typeof DEFAULT_CAMARAS !== 'undefined' ? DEFAULT_CAMARAS : []).forEach(def => {
+            const num = getNum2(def.serie);
+            if (!existingNums.has(num)) {
+              camaras.push({ id: uid(), created_by: 'seed-defaults', created_at: new Date().toISOString(), ...def });
+              existingNums.add(num);
+              seedAdded++;
+            }
+          });
+        }
+        const needsWrite = remove.size > 0 || normalized || seedAdded > 0;
+        if (needsWrite) {
+          fbDoc.set({[LS.cm]:camaras},{merge:true}).catch(e=>console.warn('[FB dedup]',e));
+          if (seedAdded > 0) setTimeout(() => toast(`✅ ${seedAdded} cámaras sincronizadas`), 500);
         }
         localStorage.setItem(LS.cm, JSON.stringify(camaras));
         changed = true;
@@ -3923,6 +3957,52 @@ function getWeekDates() {
   });
 }
 
+function renderDayPrevistos(ds) {
+  if (!ds.length) return '';
+  // Agrupar por liga
+  const byLiga = {};
+  ds.forEach(s => {
+    const k = s.liga || s.liga_name || '?';
+    if (!byLiga[k]) byLiga[k] = [];
+    byLiga[k].push(s);
+  });
+  const rows = Object.entries(byLiga).map(([lid, ss]) => {
+    const lg = getLg(lid);
+    const color = lg?.color || '#888';
+    // Calcular previstos por sesión (puede haber múltiples venues)
+    const sesData = ss.map(s => ({
+      prev: s.planned_games != null ? s.planned_games : (parsePrevistas ? parsePrevistas(s.notes) : null),
+      venue: s.venue || ''
+    }));
+    const total = sesData.reduce((acc, x) => acc + (x.prev || 0), 0);
+    const multiVenue = sesData.length > 1;
+    const prevStr = multiVenue
+      ? sesData.map(x => x.prev != null ? x.prev : '?').join('+') + ' = ' + total
+      : (total || (sesData[0].prev == null ? '—' : total));
+    const venues = sesData.map(x => x.venue).filter(v => v);
+    const venueStr = multiVenue
+      ? sesData.map(x => `${x.venue||'?'} (${x.prev!=null?x.prev:'?'})`).join(' · ')
+      : (venues[0] || '');
+    return `<div style="margin-bottom:3px">
+      <div style="display:flex;align-items:center;gap:4px;padding:2px 6px 2px 5px;border-left:2px solid ${color};border-radius:0 4px 4px 0">
+        <span style="font-size:11px;line-height:1">${lg?.icon||'🏆'}</span>
+        <span style="font-size:10px;font-weight:700;color:${color};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lg?.name||lid}</span>
+        <span style="font-size:11px;font-weight:900;color:#fff;background:${color}33;border:1px solid ${color}55;padding:0 5px;border-radius:4px;white-space:nowrap">${prevStr}</span>
+      </div>
+      ${venueStr ? `<div style="font-size:9px;color:#666;padding-left:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${venueStr}">${venueStr}</div>` : ''}
+    </div>`;
+  }).join('');
+  const totalDia = Object.values(byLiga).reduce((acc, ss) =>
+    acc + ss.reduce((s2, x) => s2 + (x.planned_games != null ? x.planned_games : (parsePrevistas ? parsePrevistas(x.notes) : 0)), 0), 0);
+  return `<div style="margin-bottom:8px;padding:6px 7px;background:rgba(255,255,255,.025);border-radius:6px;border:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <span style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#555;font-weight:700">Previstos</span>
+      ${totalDia ? `<span style="font-size:11px;font-weight:900;color:var(--orange)">${totalDia}</span>` : ''}
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function renderWeek() {
   const days = getWeekDates();
   const t    = today();
@@ -4052,6 +4132,7 @@ function renderWeek() {
           align-items:center;justify-content:center;font-size:11px;color:#000;font-weight:700">${daySelected?'✓':''}</span>` : ''}
       </div>
       <div class="wc-body">
+        ${renderDayPrevistos(ds)}
         ${rentalChips}
         ${cards}
         <div class="wc-add" onclick="openNewSession('${iso}')">+ agregar sesión</div>
@@ -4715,10 +4796,10 @@ function cobLigaCard(lgId, mes, ss) {
   const prev   = ss.reduce((s,g)=>s+(g.planned_games!=null?g.planned_games:parsePrevistas(g.notes)),0);
   const hasCob = cobHas(ss);
   const cob    = hasCob ? cobTotal(ss) : null;
-  const diff   = hasCob ? cob - prev : null;
+  const diff   = hasCob ? prev - cob : null;
   const tarifa = lgObj?.tarifa||0;
   const monto  = (cob!=null && tarifa) ? cob * tarifa : null;
-  const dc     = diff==null?'#555':diff<0?'#ef4444':diff===0?'#2cb960':'#3b82f6';
+  const dc     = diff==null?'#555':diff===0?'#2cb960':diff<0?'#3b82f6':'#f6a119';
   const inp    = `background:#111;border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 8px;color:#fff;font-size:12px;font-family:inherit;outline:none;width:70px;text-align:center`;
   return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid ${lgObj?.color||'#444'};border-radius:10px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;margin-bottom:12px">
     <!-- Liga name -->
@@ -4737,8 +4818,8 @@ function cobLigaCard(lgId, mes, ss) {
         <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Cobrables</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:28px;font-weight:900;color:${dc};line-height:1">${diff!=null?(diff>0?'+':'')+diff:'—'}</div>
-        <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Diferencia</div>
+        <div style="font-size:28px;font-weight:900;color:${dc};line-height:1">${diff!=null?diff:'—'}</div>
+        <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Pendientes</div>
       </div>
       ${monto!=null ? `<div style="text-align:center">
         <div style="font-size:24px;font-weight:900;color:#fff;line-height:1">$${monto.toLocaleString('es-UY')}</div>
@@ -4762,12 +4843,12 @@ function cobLigaCard(lgId, mes, ss) {
 
 function cobSessionTable(ss, showLiga) {
   if (!ss.length) return '';
-  const headers = ['Fecha', ...(showLiga?['Liga']:[]), 'Sede', 'Cámaras', 'Encargado', 'Previstos', 'Cobrables', 'Dif.'];
+  const headers = ['Fecha', ...(showLiga?['Liga']:[]), 'Sede', 'Cámaras', 'Encargado', 'Previstos', 'Cobrables', 'Pend.'];
   const totalPrev = ss.reduce((s,g)=>s+(g.planned_games!=null?g.planned_games:parsePrevistas(g.notes)),0);
   const hasCob    = cobHas(ss);
   const totalCob  = hasCob ? cobTotal(ss) : null;
-  const diffTot   = hasCob ? totalCob - totalPrev : null;
-  const dtc       = diffTot==null?'#555':diffTot<0?'#ef4444':diffTot===0?'#2cb960':'#3b82f6';
+  const diffTot   = hasCob ? totalPrev - totalCob : null;
+  const dtc       = diffTot==null?'#555':diffTot===0?'#2cb960':diffTot<0?'#3b82f6':'#f6a119';
   const inpS      = `background:#111;border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:4px 5px;color:#fff;font-size:12px;font-family:inherit;outline:none;width:50px;text-align:center`;
   const rows = ss.map(g => {
     const lgObj = getLg(g.liga || g.league);
@@ -4776,8 +4857,8 @@ function cobSessionTable(ss, showLiga) {
     const op    = g.placed_by || g.downloaded_by || parseOperador(g.notes);
     const cob   = g.delivered_games != null ? g.delivered_games : (g.grabados != null ? g.grabados : '');
     const cobNum = cob !== '' ? parseInt(cob) : null;
-    const diff  = (cobNum!=null&&prev) ? cobNum-prev : null;
-    const dc    = diff==null?'':diff<0?'#ef4444':diff===0?'#2cb960':'#3b82f6';
+    const diff  = (cobNum!=null&&prev) ? prev-cobNum : null;
+    const dc    = diff==null?'':diff===0?'#2cb960':diff<0?'#3b82f6':'#f6a119';
     return `<tr style="border-bottom:1px solid rgba(255,255,255,.03)" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
       <td style="padding:7px 10px;font-size:12px;color:#888;white-space:nowrap">${fmtDate(g.date)}</td>
       ${showLiga?`<td style="padding:7px 8px;font-size:11px;font-weight:700;color:${lgObj?.color||'#fff'};white-space:nowrap">${lgObj?.icon||''} ${lgObj?.name||'—'}</td>`:''}
@@ -4790,7 +4871,7 @@ function cobSessionTable(ss, showLiga) {
           onchange="saveCobrables('${g.id}',this.value)"
           onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
       </td>
-      <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;color:${dc}">${diff==null?'—':(diff>0?'+':'')+diff}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;color:${dc}">${diff==null?'—':diff}</td>
     </tr>`;
   }).join('');
   return `<div class="card" style="overflow-x:auto;padding:0;margin-bottom:20px">
@@ -4803,7 +4884,7 @@ function cobSessionTable(ss, showLiga) {
         <td colspan="${showLiga?4:3}" style="padding:8px 10px;font-size:10px;font-weight:700;color:#333;text-transform:uppercase">TOTAL</td>
         <td style="padding:8px 10px;text-align:center;font-size:13px;font-weight:700;color:#666">${totalPrev||'—'}</td>
         <td style="padding:8px 10px;text-align:center;font-size:14px;font-weight:800;color:${hasCob?'var(--orange)':'#333'}">${totalCob!=null?totalCob:'—'}</td>
-        <td style="padding:8px 10px;text-align:center;font-size:13px;font-weight:700;color:${dtc}">${diffTot!=null?(diffTot>0?'+':'')+diffTot:'—'}</td>
+        <td style="padding:8px 10px;text-align:center;font-size:13px;font-weight:700;color:${dtc}">${diffTot!=null?diffTot:'—'}</td>
       </tr></tfoot>
     </table>
   </div>`;
@@ -4839,15 +4920,15 @@ function renderCobrosSemana(el, sessions, mes) {
   Object.entries(weeks).forEach(([label, {ss, s, e}]) => {
     const prev = ss.reduce((t,g)=>t+parsePrevistas(g.notes),0);
     const cob  = cobHas(ss) ? cobTotal(ss) : null;
-    const diff = cob!=null ? cob-prev : null;
-    const dc   = diff==null?'#555':diff<0?'#ef4444':diff===0?'#2cb960':'#3b82f6';
+    const diff = cob!=null ? prev-cob : null;
+    const dc   = diff==null?'#555':diff===0?'#2cb960':diff<0?'#3b82f6':'#f6a119';
     html += `<div style="margin-bottom:6px;padding:10px 14px;background:rgba(255,255,255,.02);border-radius:8px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border:1px solid rgba(255,255,255,.05)">
       <span style="font-size:13px;font-weight:700;color:#aaa">${label}</span>
       <span style="font-size:11px;color:#555">${fmtMes(mes)} ${s}–${e}</span>
       <span style="font-size:12px;color:#666">${ss.length} ses.</span>
       <span style="font-size:13px;font-weight:700;color:#666">${prev} prev.</span>
       <span style="font-size:13px;font-weight:800;color:${cob!=null?'var(--orange)':'#333'}">${cob!=null?cob+'&nbsp;cob.':'—'}</span>
-      <span style="font-size:13px;font-weight:800;color:${dc}">${diff!=null?(diff>0?'+':'')+diff:'—'}</span>
+      <span style="font-size:13px;font-weight:800;color:${dc}">${diff!=null?diff:'—'}</span>
     </div>`;
     html += cobSessionTable(ss, true);
   });
@@ -5125,7 +5206,8 @@ async function checkFlaskServer() {
       _flaskOk = true;
       const d = await r.json();
       if (badge) {
-        badge.textContent = `● Servidor online · ${d.ip || 'localhost'}:5000`;
+        const serverLabel = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? `${d.ip || 'localhost'}:5000` : 'Railway';
+      badge.textContent = `● Servidor online · ${serverLabel}`;
         badge.style.background = 'rgba(44,185,96,.15)';
         badge.style.color = '#2cb960';
       }
@@ -5150,7 +5232,7 @@ async function generateAllPNGs() {
   if (!ready.length) { toast('No hay partidos con resultado listos', 'warn'); return; }
 
   const ok = await checkFlaskServer();
-  if (!ok) { toast('Servidor desconectado. Ejecutá START_SERVER.sh primero.', 'warn'); return; }
+  if (!ok) { toast('Servidor desconectado. Intentá de nuevo en unos segundos.', 'warn'); return; }
 
   const btn = document.getElementById('btn-gen-all');
   if (btn) { btn.textContent = '⏳ Generando…'; btn.disabled = true; }
@@ -5212,7 +5294,7 @@ async function generateSinglePNG(id) {
   const [hs, as_] = parseScore(g.score);
 
   const ok = await checkFlaskServer();
-  if (!ok) { toast('Servidor desconectado. Ejecutá START_SERVER.sh primero.', 'warn'); return; }
+  if (!ok) { toast('Servidor desconectado. Intentá de nuevo en unos segundos.', 'warn'); return; }
 
   toast('⏳ Generando PNG…');
   try {
@@ -5684,12 +5766,37 @@ function seedComplejos() {
 }
 
 /* ──────────────────────────────────────────────
+   MIGRACIÓN: limpiar delivered_games=0 incorrecto
+   Causa: el modal de sesión tenía value="${s.delivered_games||0}" y guardaba 0
+   cuando no había dato, en vez de null. Esto hacía que cobros mostrara
+   "0 cobrables" y diferencias negativas en lugar de "—".
+   ────────────────────────────────────────────── */
+function fixDeliveredZero() {
+  const KEY = 'ps2_fix_delivered_zero_v1';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+  let fixed = 0;
+  sessions.forEach(s => {
+    // Solo resetear si es 0 y no hay evidencia de entrega intencional
+    if (s.delivered_games === 0 && !s.delivered && !s.delivered_by) {
+      s.delivered_games = null;
+      fixed++;
+    }
+  });
+  if (fixed > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    console.log(`[fixDeliveredZero] ${fixed} sesiones con 0 incorrecto → null`);
+  }
+}
+
+/* ──────────────────────────────────────────────
    SEEDER PDF "PARTIDOS COMPARTIDOS" (billing)
    Fuente: planilla compartidos/programados por liga y fecha
    Actualiza planned_games (programados) y delivered_games (compartidos cobrables)
    ────────────────────────────────────────────── */
 function seedCompartidosPDF() {
-  const KEY = 'ps2_seeded_compartidos_pdf_v1';
+  const KEY = 'ps2_seeded_compartidos_pdf_v2';
   if (localStorage.getItem(KEY)) return;
   localStorage.setItem(KEY, '1');
 
@@ -5780,6 +5887,8 @@ function seedCompartidosPDF() {
       if (t.comp != null && t.comp > 0 && !sessions[idx].delivered_games) {
         sessions[idx].delivered_games = t.comp;
       }
+      // fix: si no hay dato de comp y el valor es 0 (bug anterior), resetear a null → cobros muestra "—"
+      if (t.comp == null && sessions[idx].delivered_games === 0) sessions[idx].delivered_games = null;
       updated++;
     } else {
       // Crear sesión mínima con datos de facturación
@@ -5795,7 +5904,7 @@ function seedCompartidosPDF() {
         download_status: (t.comp != null && t.comp > 0) ? 'completa' : '',
         planned_games: t.prog || null,
         confirmed_games: 0,
-        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : 0,
+        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : null,
         notes: ''
       });
       created++;
@@ -5813,7 +5922,7 @@ function seedCompartidosPDF() {
    SEEDER SEMANA 20-26 ABRIL 2026 (del PDF)
    ────────────────────────────────────────────── */
 function seedCompartidosSemana20_26Abr() {
-  const KEY = 'ps2_seeded_compartidos_semana20abr2026_v1';
+  const KEY = 'ps2_seeded_compartidos_semana20abr2026_v2';
   if (localStorage.getItem(KEY)) return;
   localStorage.setItem(KEY, '1');
 
@@ -5878,6 +5987,8 @@ function seedCompartidosSemana20_26Abr() {
       if (t.comp != null && t.comp > 0 && !sessions[idx].delivered_games) {
         sessions[idx].delivered_games = t.comp;
       }
+      // fix: si no hay dato de comp y el valor es 0 (bug anterior), resetear a null
+      if (t.comp == null && sessions[idx].delivered_games === 0) sessions[idx].delivered_games = null;
       updated++;
     } else {
       sessions.push({
@@ -5892,7 +6003,7 @@ function seedCompartidosSemana20_26Abr() {
         download_status: (t.comp != null && t.comp > 0) ? 'completa' : '',
         planned_games:   t.prog || null,
         confirmed_games: 0,
-        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : 0,
+        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : null,
         notes: ''
       });
       created++;
@@ -5955,6 +6066,97 @@ function seedLigaPandoSemana20_26Abr() {
     store(LS.ss, sessions);
     try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
     if (created > 0) toast(`📊 Liga Pando 20-26 abr: ${created} sesiones nuevas · ${updated} actualizadas`);
+  }
+}
+
+/* ──────────────────────────────────────────────
+   SEEDER PDF "PARTIDOS COMPARTIDOS" v2
+   Fuente: planilla PARTIDOS COMPARTIDOS.pdf
+   Actualiza comp=null→real + agrega semana 27 abr+
+   ────────────────────────────────────────────── */
+function seedCompartidosPDF_v2() {
+  const KEY = 'ps2_seeded_compartidos_pdf_v4';
+  if (localStorage.getItem(KEY)) return;
+  localStorage.setItem(KEY, '1');
+
+  const lgMap = {};
+  leagues.forEach(l => { lgMap[l.name.toLowerCase()] = l.id; });
+  function lgId(name) {
+    if (!name) return null;
+    const n = name.toLowerCase().trim();
+    return lgMap[n] || leagues.find(l => l.name.toLowerCase().includes(n) || n.includes(l.name.toLowerCase()))?.id || null;
+  }
+
+  // comp = compartidos (cobrables), prog = programados, null = sin dato
+  // force = true → sobreescribir delivered_games aunque ya tenga valor
+  const data = [
+    // ── SEMANA 13-19 ABRIL: confirmaciones que antes eran null ──
+    { date:'2026-04-13', lg:'Liga PRO',           venue:'Pro Futbol',    prog:8,  comp:8  },
+    { date:'2026-04-18', lg:'Liga PRO',           venue:'Pro Futbol',    prog:27, comp:25 },
+    { date:'2026-04-18', lg:'Piria Seven League',                        prog:6,  comp:6  },
+    { date:'2026-04-18', lg:'Liga Celeste',                              prog:9,  comp:9  },
+    { date:'2026-04-19', lg:'Solymar',                                   prog:22, comp:16 },  // VERIFICAR: no sabe si se grabaron todos
+    { date:'2026-04-19', lg:'Liga América',                              prog:11, comp:11 },  // DEP KIRICOCHO vs PIEDRAS BLANCAS puede estar incompleto
+    { date:'2026-04-19', lg:'Liga PRO',           venue:'Polideportivo', prog:16, comp:16 },
+    { date:'2026-04-19', lg:'Liga Celeste',                              prog:3,  comp:3  },
+    // ── SEMANA 20-26 ABRIL: confirmaciones que antes eran null ──
+    { date:'2026-04-26', lg:'Liga Kings',                                prog:13, comp:13 },  // pendientes de entrega al cliente
+    { date:'2026-04-25', lg:'Piria Seven League',                        prog:5,  comp:5  },
+    { date:'2026-04-26', lg:'Liga PRO',           venue:'Polideportivo', prog:15, comp:15 },
+    { date:'2026-04-25', lg:'Liga Celeste',                              prog:10, comp:10 },
+    { date:'2026-04-26', lg:'Liga Celeste',                              prog:12, comp:11 },  // 1 cámara grabó 3 partidos de corrido; partido dividido en 2 grabaciones
+    // ── SEMANA 27 ABRIL - 3 MAYO ──
+    { date:'2026-04-27', lg:'Liga MVD',                                  prog:6,  comp:6  },
+    { date:'2026-04-29', lg:'Liga MVD',                                  prog:6,  comp:6  },
+    { date:'2026-04-30', lg:'Liga MVD',                                  prog:7,  comp:7  },
+    // ── MAYO ──
+    { date:'2026-05-20', lg:'Liga Solo Fútbol',                          prog:3,  comp:3  },
+  ];
+
+  let updated = 0, created = 0;
+  data.forEach(t => {
+    const lid = lgId(t.lg);
+    if (!lid) { console.warn('[seedCompartidosV2] liga no encontrada:', t.lg); return; }
+
+    const all = sessions.filter(s => s.liga === lid && s.date === t.date);
+    let target = null;
+    if (t.venue && all.length > 1) {
+      target = all.find(s => s.venue && s.venue.toLowerCase().includes(t.venue.toLowerCase()));
+    }
+    if (!target) target = all[0] || null;
+
+    if (target) {
+      const idx = sessions.indexOf(target);
+      if (t.prog != null && t.prog > 0) sessions[idx].planned_games = t.prog;
+      if (t.comp != null && t.comp > 0) {
+        if (!sessions[idx].delivered_games) sessions[idx].delivered_games = t.comp;
+        sessions[idx].download_status = 'completa';
+      }
+      updated++;
+    } else {
+      sessions.push({
+        id: uid(),
+        date: t.date,
+        liga: lid,
+        liga_name: t.lg,
+        venue: t.venue || '',
+        courts: [], cameras: [],
+        placed_by: '', retrieved_by: '', downloaded_by: '',
+        start_time: '', end_time: '',
+        download_status: (t.comp != null && t.comp > 0) ? 'completa' : '',
+        planned_games:   t.prog || null,
+        confirmed_games: 0,
+        delivered_games: (t.comp != null && t.comp > 0) ? t.comp : null,
+        notes: ''
+      });
+      created++;
+    }
+  });
+
+  if (updated > 0 || created > 0) {
+    store(LS.ss, sessions);
+    try { db.collection('sessions_data').doc('main').set({ [LS.ss]: sessions }, { merge: true }); } catch(e) {}
+    if (created > 0) toast(`📊 PDF v2: ${created} sesiones nuevas · ${updated} actualizadas`);
   }
 }
 
@@ -6534,7 +6736,7 @@ async function lpGenerarUno(g) {
   const home = g.home_display || g.home;
   const away = g.away_display || g.away;
   try {
-    const resp = await fetch('http://localhost:5000/api/generate-graphic', {
+    const resp = await fetch(FLASK_URL + '/api/generate-graphic', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ league: 'Liga PRO', home_team: g.home, away_team: g.away,
                              home_score: g.home_score, away_score: g.away_score })
@@ -6563,7 +6765,7 @@ async function lpGenerarTodos() {
       home: g.home, away: g.away,
       home_score: g.home_score, away_score: g.away_score
     }));
-    const resp = await fetch('http://localhost:5000/api/generate-batch', {
+    const resp = await fetch(FLASK_URL + '/api/generate-batch', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ league: 'Liga PRO', games })
     });
@@ -7901,7 +8103,7 @@ function openSessionModal(s, isNew) {
         </div>
         <div>
           <label class="flabel">Entregados (cobrables)</label>
-          <input id="sm-delivered" type="number" min="0" class="finput" value="${s.delivered_games||0}">
+          <input id="sm-delivered" type="number" min="0" class="finput" value="${s.delivered_games!=null?s.delivered_games:''}">
         </div>
         <div>
           <label class="flabel">Entrega de material</label>
@@ -7968,7 +8170,7 @@ function saveSession(id) {
     download_status:  document.getElementById('sm-status').value,
     planned_games:    parseInt(document.getElementById('sm-planned').value)||null,
     confirmed_games:  parseInt(document.getElementById('sm-confirmed').value)||0,
-    delivered_games:          parseInt(document.getElementById('sm-delivered').value)||0,
+    delivered_games:          (()=>{const d=document.getElementById('sm-delivered').value.trim();return d===''?null:(parseInt(d)||0);})(),
     material_delivery_status: document.getElementById('sm-material-status').value,
     notes:                    document.getElementById('sm-notes').value.trim(),
   };
@@ -8159,7 +8361,7 @@ function ligaDesdeGrabacion(titulo) {
 
 async function importarCamarasVeo() {
   const FLASK = window.location.origin.includes('localhost') || window.location.protocol === 'file:'
-    ? 'http://localhost:5000' : window.location.origin;
+    ? 'http://localhost:5000' : RAILWAY_URL;
 
   try {
     toast('🔄 Conectando con Veo...', '');
@@ -8224,6 +8426,13 @@ async function importarCamarasVeo() {
       }
     });
 
+    // Preservar cámaras manuales que no están en Veo (no tienen match en incoming)
+    camaras.forEach(c => {
+      const sn = getNum(c.serie);
+      const enIncoming = incoming.some(cam => getNum(cam.serie) === sn || cam.serie === c.serie);
+      if (!enIncoming) nuevasCamaras.push(c);
+    });
+
     // Reemplazar completamente (no merge) — elimina las 70 viejas
     camaras = nuevasCamaras;
     store(LS.cm, camaras);
@@ -8264,18 +8473,21 @@ const DEFAULT_CAMARAS = [
   { serie:'10982', modelo:'VEO 3', estado:'SIN ASOCIAR', clubhouse:'',        ubicacion:'SOPORTE',          movimiento:'AVERIADA', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
   { serie:'285CE', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MATEO',       movimiento:'', trip_modelo:'C3',  trip_estado:'SANO', trip_ubicacion:'LIGA KINGS',    trip_mov:'' },
   { serie:'5007',  modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 3',      ubicacion:'SOPORTE',          movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
-  { serie:'48523', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'Reparada cambio conector 20-3-26', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'LIGA KINGS', trip_mov:'' },
+  { serie:'48523', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISIÓN',ubicacion:'CASA MAURO',       movimiento:'Reparada cambio conector 20-3-26', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'LIGA KINGS', trip_mov:'' },
   { serie:'60636', modelo:'VEO 3', estado:'SIN ASOCIAR', clubhouse:'',        ubicacion:'SOPORTE',          movimiento:'SOPORTE DINAMARCA', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
-  { serie:'73967', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'73967', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISIÓN',ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
   { serie:'2588E', modelo:'VEO 2', estado:'ASOCIADA', clubhouse:'URUGUAY 2',  ubicacion:'CASA MAURO',       movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
-  { serie:'81597', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
-  { serie:'81572', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'ZONA LAB', trip_mov:'' },
-  { serie:'81541', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISION',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
-  { serie:'81561', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BUHOVISION', ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'81597', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISIÓN',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'81572', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISIÓN',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'C3', trip_estado:'SANO', trip_ubicacion:'ZONA LAB', trip_mov:'' },
+  { serie:'81541', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'TRANSMISIÓN',ubicacion:'CASA MAURO',       movimiento:'lote mar 2026', trip_modelo:'', trip_estado:'', trip_ubicacion:'', trip_mov:'' },
+  { serie:'81561', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BUHOVISIÓN', ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'81136', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 11',     ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'81547', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 11',     ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
+  { serie:'81549', modelo:'VEO 3', estado:'ASOCIADA', clubhouse:'BHV 11',     ubicacion:'',                 movimiento:'', trip_modelo:'',    trip_estado:'',     trip_ubicacion:'',              trip_mov:'' },
 ];
 
 function seedDefaultCamaras() {
-  // Desactivado — datos ahora vienen del scan de Veo (Importar Veo)
+  // El seed ahora corre dentro de onSnapshot (post-Firestore sync)
 }
 
 function ubicColor(ub) {

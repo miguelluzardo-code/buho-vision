@@ -26,6 +26,8 @@ COPY 2_Graphics_Generation/ ./2_Graphics_Generation/
 COPY 1_Data_Input/ ./1_Data_Input/
 COPY templates/ ./templates/
 COPY buhovision_app.html .
+RUN mkdir -p 1_Video_Download
+COPY 1_Video_Download/veo_cameras.json ./1_Video_Download/veo_cameras.json
 
 # Logo cache dir (populated at runtime from Firebase Storage)
 RUN mkdir -p /app/logo_cache
