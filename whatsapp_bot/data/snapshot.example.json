@@ -1,0 +1,26 @@
+{
+  "ps2_leagues": [
+    { "id": "lg_kings", "name": "Liga Kings", "sport": "Fútbol", "icon": "👑", "members": [ { "id": "m1", "name": "Lucero", "role": "operador", "phone": "099 111 222" } ] },
+    { "id": "lg_fubb",  "name": "FUBB", "sport": "Basketball", "icon": "🏀", "members": [] },
+    { "id": "lg_solymar", "name": "Solymar", "sport": "Fútbol", "icon": "⚽", "members": [] }
+  ],
+  "ps2_sessions": [
+    { "id": "s1", "date": "2026-04-24", "liga": "lg_solymar", "venue": "Invictus", "cameras": ["15", "8"], "courts": [],
+      "placed_by": "Lucero", "retrieved_by": "Queda en depósito", "downloaded_by": "Lucero",
+      "start_time": "20:00", "end_time": "22:00", "download_status": "pendiente", "planned_games": 4, "confirmed_games": 0, "delivered_games": 0 },
+    { "id": "s2", "date": "2026-04-24", "liga": "lg_fubb", "venue": "Malvin", "cameras": [], "courts": [],
+      "placed_by": "Mateo", "retrieved_by": "Mateo", "downloaded_by": "Mateo",
+      "start_time": "21:00", "end_time": "", "download_status": "pendiente", "planned_games": 2, "confirmed_games": 0, "delivered_games": 0 },
+    { "id": "s3", "date": "2026-04-21", "liga": "lg_kings", "venue": "Zona Lab", "cameras": ["3"], "courts": ["1"],
+      "placed_by": "Lucero", "retrieved_by": "Lucero", "downloaded_by": "Lucero",
+      "start_time": "19:00", "end_time": "23:00", "download_status": "en_proceso", "planned_games": 6, "confirmed_games": 6, "delivered_games": 0,
+      "confirmed_at": "2026-04-21T23:30:00-03:00", "confirmed_by": "Lucero" },
+    { "id": "s4", "date": "2026-04-25", "liga": "lg_kings", "venue": "Zona Lab", "cameras": ["3"], "courts": ["2"],
+      "placed_by": "", "retrieved_by": "", "downloaded_by": "",
+      "start_time": "18:00", "end_time": "22:00", "download_status": "", "planned_games": 5, "confirmed_games": 0, "delivered_games": 0 },
+    { "id": "s5", "date": "2026-04-20", "liga": "lg_fubb", "venue": "Juventud", "cameras": [], "courts": [],
+      "placed_by": "Mateo", "retrieved_by": "Mateo", "downloaded_by": "Mateo",
+      "start_time": "", "end_time": "", "download_status": "completa", "planned_games": 2, "confirmed_games": 2, "delivered_games": 2,
+      "confirmed_at": "2026-04-20T23:00:00-03:00", "delivered_at": "2026-04-22T10:00:00-03:00", "delivered_by": "Miguel" }
+  ]
+}

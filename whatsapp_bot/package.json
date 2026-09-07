@@ -1,0 +1,20 @@
+{
+  "name": "buhovision-whatsapp-bot",
+  "version": "0.1.0",
+  "description": "Bot de WhatsApp de Búho Visión: vive en los grupos y avisa a cada responsable sus tareas (colocar, retirar, descargar, entregar) y situaciones importantes (SLA 48h, sin responsable, cambios de estado).",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js --dry",
+    "test": "node --test \"test/**/*.test.js\"",
+    "simulate": "node src/simulate.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "firebase-admin": "^13.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

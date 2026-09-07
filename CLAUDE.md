@@ -7,6 +7,7 @@ Fully automate sports video production pipeline from raw recordings to published
 - **Phase 1**: Graphics Automation ✅ WORKING! HTML/CSS Solution Implemented
 - **Phase 2**: Video Pipeline ⚪ PLANNED
 - **Phase 3**: Social Distribution ⚪ PLANNED
+- **WhatsApp Bot**: 🟡 BUILT (`whatsapp_bot/`) — pendiente: número dedicado + credenciales Firebase
 
 ## 🎉 BREAKTHROUGH ACHIEVED!
 **Date**: Session completed
@@ -22,6 +23,8 @@ buho_vision/
 │   └── CLAUDE.md             → Detailed automation memory
 ├── 📁 Social Network/        → Content distribution
 │   └── CLAUDE.md             → Social media strategy
+├── 📁 whatsapp_bot/          → Bot de WhatsApp: avisa tareas a cada responsable
+│   └── README.md             → Reglas, comandos y puesta en marcha
 └── 📄 CLAUDE.md              → This file (master reference)
 ```
 

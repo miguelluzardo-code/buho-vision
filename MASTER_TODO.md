@@ -162,8 +162,15 @@ Transform Buho Vision from manual video production to **80% automated workflow**
 ## 📧 PHASE 7: CLIENT NOTIFICATIONS
 **Goal**: Automated communication system
 
+### Internal Team Bot (whatsapp_bot/) ✅ BUILT
+- [x] Bot de WhatsApp en grupos: avisa a cada responsable (colocar / retirar / descargar / SLA 48h)
+- [x] Comandos en grupo: !hoy !semana !pendientes !yo !soy !liga !general
+- [x] Tests + simulador sin WhatsApp
+- [ ] Número dedicado + escanear QR + cuenta de servicio Firebase
+- [ ] Deploy en Railway con volumen persistente
+
 ### Notification System
-- [ ] WhatsApp Business API setup
+- [ ] WhatsApp Business API setup (avisos a clientes/ligas)
 - [ ] Email template creation
 - [ ] SMS integration (optional)
 - [ ] Video ready notifications

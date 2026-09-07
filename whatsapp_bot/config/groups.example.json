@@ -1,0 +1,8 @@
+{
+  "_comentario": "Opcional. Alternativa a los comandos !general / !liga. Los IDs de grupo se ven en la consola al arrancar el bot.",
+  "general": "120363000000000000@g.us",
+  "byLeague": {
+    "Liga Kings": "120363000000000001@g.us",
+    "FUBB": "120363000000000002@g.us"
+  }
+}
